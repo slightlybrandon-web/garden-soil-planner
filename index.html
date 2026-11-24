@@ -43,12 +43,20 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
 .two{display:grid;grid-template-columns:1fr 1.25fr;gap:16px} @media(max-width:900px){.two{grid-template-columns:1fr}}
 .seg{display:inline-flex;border:1px solid var(--green);border-radius:8px;overflow:hidden}
 .seg button{border:0;background:#fff;color:var(--green);padding:6px 12px;font:inherit;cursor:pointer}.seg button.on{background:var(--green);color:#fff}
+.hero{background:linear-gradient(135deg,#3d6b45,#587f48);color:#fff;border-radius:14px;padding:26px 26px 22px;margin-bottom:18px}
+.hero h2{font-size:26px;margin:0 0 6px;font-weight:700} .hero p{margin:0;color:#e6f0df;max-width:640px;font-size:16px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:8px 0 18px}
+.opt{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:.12s}
+.opt:hover{border-color:var(--green);box-shadow:0 2px 10px rgba(61,107,69,.15);transform:translateY(-1px)}
+.opt .ic{font-size:26px;display:block;margin-bottom:6px} .opt b{display:block;font-size:16px;margin-bottom:2px} .opt span.d{color:var(--mute);font-size:13.5px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px} .step{background:#f1ebdc;border-radius:10px;padding:12px 14px}.step i{font-style:normal;display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:6px}
+.stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:var(--green)}
 .tiny{font-size:12px} .right{margin-left:auto}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
 </style>
 </head>
 <body>
-<header><h1>🌱 Garden Soil Planner</h1>
+<header><h1 style="cursor:pointer" onclick="setTab('home')">🌱 Garden Soil Planner</h1>
 <nav id="nav"></nav></header>
 <main id="main"></main>
 <footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser.</footer>
@@ -215,19 +223,19 @@ function load(){ try{ const s = localStorage.getItem(KEY); if(s) return JSON.par
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} mem = clone(S); schedulePush(); }
 let S = load() || {
   tests: clone(SEED.tests), sizes: {...DEFAULT_SIZES}, settings: clone(E.DEFAULTS),
-  ui: {tab:'needs', date:null, basis:'lim', garden:'G1', sel:['G1','G2'], mixes:{}, allowed:{}}
+  ui: {tab:'home', date:null, basis:'lim', garden:'G1', sel:['G1','G2'], mixes:{}, allowed:{}}
 };
 // repair for older saves
 S.custom = S.custom||[];
 function fixSettings(){ S.settings = Object.assign(clone(E.DEFAULTS), S.settings||{}); for(const k of ['cationFloor','satRange','maxPpm','highPh']) S.settings[k]=Object.assign(clone(E.DEFAULTS[k]), S.settings[k]||{}); }
 fixSettings();
-S.ui = Object.assign({tab:'needs',basis:'lim',garden:'G1',sel:['G1','G2'],mixes:{},allowed:{}}, S.ui);
+S.ui = Object.assign({tab:'home',basis:'lim',garden:'G1',sel:['G1','G2'],mixes:{},allowed:{}}, S.ui);
 let COMPS = SEED.compounds;
 function rebuildComps(){ COMPS = SEED.compounds.concat((S.custom||[]).map(c=>({id:c.id,minerals:c.minerals,custom:true,lbPerGal:c.lbPerGal}))); }
 rebuildComps();
 const dates = () => Object.keys(S.tests).filter(k=>Object.keys(S.tests[k]).length).sort().reverse();
 if(!S.ui.date || !S.tests[S.ui.date]) S.ui.date = dates()[0];
-if(!dates().length) S.ui.tab='tests';
+
 const fmtDate = k => k.length===8 && k.slice(4,6)!=='00' ? `${k.slice(0,4)}-${k.slice(4,6)}-${k.slice(6)}` : (k.slice(0,4)+' (date unknown)');
 const f4 = v => v===0 ? '–' : v.toFixed(4);
 const f2 = v => v===0 ? '–' : (v<0.01? v.toFixed(4) : v.toFixed(2));
@@ -239,14 +247,50 @@ const basisKey = () => S.ui.basis==='tec' ? 'tecOz' : 'limOz';
 
 function setTab(t){ S.ui.tab=t; save(); render(); }
 function render(){
-  const tabs=[['needs','1 · Needs'],['mix','2 · Mix'],['plan','3 · Plan'],['tests','Soil tests'],['settings','Settings']];
+  const tabs=[['home','Home'],['needs','1 · Needs'],['mix','2 · Mix'],['plan','3 · Plan'],['tests','Soil tests'],['settings','Settings']];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
-  ({needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
+  ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
 }
 const dateSelect = () => `<select onchange="S.ui.date=this.value;save();render()">${dates().map(d=>`<option value="${d}" ${d===S.ui.date?'selected':''}>${fmtDate(d)}</option>`).join('')}</select>`;
 const basisSeg = () => `<span class="seg"><button class="${S.ui.basis==='tec'?'on':''}" onclick="S.ui.basis='tec';save();render()">tecOz</button><button class="${S.ui.basis==='lim'?'on':''}" onclick="S.ui.basis='lim';save();render()">limOz</button></span>`;
+
+/* ---------------- HOME ---------------- */
+const EXAMPLE={date:'20250401',rows:{'Bed A':{TEC:8.2,PH:6.5,SOMpct:3.8,Sulphur:12,Phosphorous:95,Calcium:1180,Magnesium:140,Potassium:62,Sodium:20,Boron:0.4,Iron:38,Manganese:14,Copper:1.1,Zinc:6.2,Aluminium:420,Cobalt:0.03,Molybdenum:0.05,Selenium:0.1},
+  'Bed B':{TEC:5.4,PH:6.1,SOMpct:2.6,Sulphur:9,Phosphorous:48,Calcium:640,Magnesium:78,Potassium:34,Sodium:14,Boron:0.3,Iron:24,Manganese:6,Copper:0.7,Zinc:3.1,Aluminium:300,Cobalt:0.02,Molybdenum:0.03,Selenium:0.08}}};
+function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['Bed A']=S.sizes['Bed A']||400; S.sizes['Bed B']=S.sizes['Bed B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['Bed A','Bed B']; S.ui.garden='Bed A'; save(); setTab('needs'); }
+function vHome(){
+  const ds=dates(), has=ds.length, d=S.ui.date;
+  let summary='';
+  if(has){
+    const gs=gardensOf(d), cnt={}; let low=0;
+    gs.forEach(g=>{ const a=E.analyze(S.tests[d][g],S.settings); for(const el of EL) if(a[el]&&a[el].limOz>0) cnt[el]=(cnt[el]||0)+1; if(S.tests[d][g].TEC<S.settings.lowCec) low++; });
+    const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    summary=`<div class="card"><h2>Your garden at a glance</h2><p class="sub">Latest test: <b>${fmtDate(d)}</b> · ${gs.length} garden${gs.length>1?'s':''}${low?` · ${low} low-CEC`:''}</p>
+      ${top.length?`<div>${top.map(([el,n])=>`<span class="stat"><b>${n} of ${gs.length}</b>need ${el.toLowerCase()}</span>`).join('')}</div>`:'<div class="okbox">Nothing needed — every mineral meets its target.</div>'}
+      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>`;
+  }
+  $('#main').innerHTML=`
+  <div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>
+  ${summary}
+  <h2 style="margin:4px 0">${has?'Add more':'Choose how to start'}</h2>
+  <div class="opts">
+    <label class="opt"><span class="ic">📷</span><b>Scan a lab report</b><span class="d">Take a photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
+    <button class="opt" onclick="setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
+    <label class="opt"><span class="ic">📄</span><b>Import a file</b><span class="d">Load a soiltest.xml or a backup you exported earlier.</span><input type="file" accept=".xml,.json" hidden onchange="importAny(this.files[0]);this.value=''"></label>
+    <button class="opt" onclick="loadExample()"><span class="ic">🧪</span><b>Try it with example data</b><span class="d">Two sample garden beds, so you can look around first. Delete them any time.</span></button>
+    <label class="opt"><span class="ic">🏷️</span><b>Scan a product label</b><span class="d">Photograph a fertilizer bag or bottle to add it to your products.</span><input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label>
+  </div>
+  <div class="card" id="scancard" style="display:${(SCAN||PSCAN)?'block':'none'}"><span id="scanmsg" class="muted"></span><div id="review">${reviewHtml()}</div><span id="labelmsg" class="muted tiny"></span><div id="prodreview">${prodReviewHtml()}</div></div>
+  <div class="card"><h2>How it works</h2><div class="steps" style="margin-top:8px">
+    <div class="step"><i>1</i><b>Add a soil test</b><div class="tiny muted">Scan, type or import your lab results (ppm values and TEC).</div></div>
+    <div class="step"><i>2</i><b>See what's needed</b><div class="tiny muted">Each garden's shortfalls in oz per sq-ft, against the book's targets.</div></div>
+    <div class="step"><i>3</i><b>Build a mix</b><div class="tiny muted">Tick the products you have, or press Recommend to see what to buy.</div></div>
+    <div class="step"><i>4</i><b>Get the recipe</b><div class="tiny muted">Pounds per product for each garden, with yearly-limit checks and tips.</div></div></div></div>
+  <p class="tiny muted">Your data stays in this browser. Use Soil tests → Export backup to keep a copy or move to another device.</p>`;
+}
+function importAny(file){ if(!file) return; if(/\.json$/i.test(file.name)) importBackup(file); else importXml(file); }
 
 /* ---------------- NEEDS ---------------- */
 function vNeeds(){
@@ -295,7 +339,7 @@ const mixKey = () => S.ui.date+'|'+[...S.ui.sel].sort().join(',');
 const curMix = () => (S.ui.mixes[mixKey()] ||= {});
 const selArea = () => S.ui.sel.reduce((t,g)=>t+size(g),0);
 function needLbs(){
-  const d=S.ui.date, tot={};
+  const d=S.ui.date, tot={}; if(!d||!S.tests[d]) return tot;
   for(const g of S.ui.sel){ if(!S.tests[d][g]) continue; const a=E.analyze(S.tests[d][g],S.settings);
     for(const el of EL) if(a[el]) tot[el]=(tot[el]||0)+a[el][basisKey()]*size(g)/16; }
   return tot;
@@ -463,7 +507,7 @@ async function initCaps(){
   try{ CL.db=await claude.use('db'); }catch(e){}
   if(CL.db) startSync();
 }
-function setMsg(m){ const el=$('#scanmsg'); if(el) el.textContent=m; }
+function setMsg(m){ const el=$('#scanmsg'); if(el) el.textContent=m; const c=$('#scancard'); if(c&&m) c.style.display='block'; }
 function shrink(file,max){ return createImageBitmap(file).then(bm=>{ const s=Math.min(1,max/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*s); c.height=Math.round(bm.height*s); c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); }); }
 async function scanPhoto(file){
   if(!file) return;
@@ -575,7 +619,7 @@ function renderProjected(sup){
 /* ---------------- PRODUCT LABELS + MISSING-MINERAL CHECK ---------------- */
 const ELMAP={N:'Nitrogen',P:'Phosphorous',K:'Potassium',Ca:'Calcium',Mg:'Magnesium',S:'Sulphur',B:'Boron',Fe:'Iron',Mn:'Manganese',Cu:'Copper',Zn:'Zinc',Mo:'Molybdenum',Co:'Cobalt',Se:'Selenium',Na:'Sodium',Si:'Silicon'};
 let PSCAN=null;
-const pmsg=m=>{ const el=$('#labelmsg'); if(el) el.textContent=m; };
+const pmsg=m=>{ const el=$('#labelmsg'); if(el) el.textContent=m; const c=$('#scancard'); if(c&&m) c.style.display='block'; };
 function newProduct(){ PSCAN={name:'',lbPerGal:'',pct:{},notes:'',conv:''}; $('#prodreview').innerHTML=prodReviewHtml(); }
 async function scanLabel(file){
   if(!file) return;
