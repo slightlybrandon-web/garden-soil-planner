@@ -34,13 +34,13 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .zero{color:#9aa5b8}
 .bar{height:9px;background:#dde6f2;border-radius:5px;overflow:hidden;min-width:110px;position:relative}
 .bar i{display:block;height:100%;background:var(--ok)} .bar i.over{background:var(--warn);box-shadow:inset 0 0 0 1px #0a0f1a}
-.muted{color:var(--mute)} .warnbox{background:var(--warn2);border:1px solid #d9b700;border-left:5px solid var(--warn);color:var(--warnink);border-radius:8px;padding:8px 12px;margin:6px 0}
+.muted{color:var(--mute)} .warnbox{background:var(--warn2);border:1px solid #d9b700;border-left:5px solid var(--warn);color:#000;border-radius:8px;padding:8px 12px;margin:6px 0}
 .okbox{background:var(--green2);border:1px solid #b8d0ee;border-radius:8px;padding:8px 12px;margin:6px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .grid label{display:flex;flex-direction:column;font-size:12px;color:var(--mute)} .grid input{width:100%}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 11px;margin:0 6px 6px 0;background:#fff;cursor:pointer}
 .chip.on{background:var(--green2);border-color:var(--green)}
-.two{display:grid;grid-template-columns:1fr 1.25fr;gap:16px} @media(max-width:900px){.two{grid-template-columns:1fr}}
+.two{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;align-items:start}.stick{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.optcard{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}.optcard h3{margin:0 0 2px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}.optcard table td,.optcard table th{padding:4px 6px}.why{font-size:12px;color:#000;text-align:left} @media(max-width:900px){.two{grid-template-columns:1fr}.stick{position:static;max-height:none}}
 .seg{display:inline-flex;border:1px solid var(--green);border-radius:8px;overflow:hidden}
 .seg button{border:0;background:#fff;color:var(--green);padding:6px 12px;font:inherit;cursor:pointer}.seg button.on{background:var(--green);color:#fff}
 .hero{background:linear-gradient(135deg,#0a1628,#14407a);color:#fff;border-radius:14px;padding:26px 26px 22px;margin-bottom:18px}
@@ -54,7 +54,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .ppmbar b.tg{position:absolute;top:-3px;width:2px;height:16px;background:#222}.ppmbar b.fl{position:absolute;top:-1px;width:2px;height:12px;background:#999}
 details.gd{padding:0}details.gd>summary{cursor:pointer;padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;list-style:none}details.gd>summary::-webkit-details-marker{display:none}details.gd>summary:before{content:'▸';color:var(--green)}details.gd[open]>summary:before{content:'▾'}details.gd>*:not(summary){margin-left:14px;margin-right:14px}details.gd>.scroll{margin-bottom:12px}.sumneeds{margin-left:auto}th.gh{text-align:center;background:var(--green2);border-bottom:2px solid var(--green)}
 table.needs td,table.needs th{text-align:center}table.needs td:first-child,table.needs th:first-child{text-align:left}
-.stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:var(--green)}
+.stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
 .tiny{font-size:12px} .right{margin-left:auto}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
 </style>
@@ -257,6 +257,7 @@ function render(){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
   try{ glossify($('#main')); }catch(e){}
+  if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
 }
 /* ---------------- GLOSSARY (hover definitions) ---------------- */
 const GLOSS={
@@ -370,14 +371,14 @@ function detailHtml(g,a,d,bk,open){
   const row=S.tests[d][g], sz=size(g), np=nameParts(g);
   let det='';
   for(const el of EL){ const x=a[el]; if(!x) continue;
-    const rng=x.satRange?`${x.satPct.toFixed(1)}% <span class="muted tiny">(${x.satRange[0]}–${x.satRange[1]})</span>`:'–';
+    const rng=x.satRange?`${x.satPct.toFixed(1)}% <span class="tiny" style="color:#000">(${x.satRange[0]}–${x.satRange[1]})</span>`:'–';
     const cap=['Molybdenum','Selenium'].includes(el)?' <span class="pill low" title="The book warns Mo and Se are toxic above about 1–2 ppm">caution</span>':'';
     det+=`<tr><td>${el}${cap}</td><td>${x.found}</td><td>${x.target.toFixed(x.target<5?2:0)}</td><td style="min-width:120px">${ppmBar(x)}</td><td>${x.floor??'–'}</td><td>${x.maxPpm??'–'}</td><td>${rng}</td><td>${f4(x.tecOz)}</td><td>${f4(x.limOz)}</td><td>${sz? f2(x[bk]*sz/16):'–'}</td><td style="text-align:left">${statusPill(x,el)}</td></tr>`;
   }
   const needs=EL.filter(el=>a[el]&&a[el].limOz>0&&!a[el].high);
   const nts=E.notes(row,a,S.settings), nclass={warn:'warnbox',info:'okbox',tip:'okbox'};
   return `<details class="card gd" ${open?'open':''}><summary><b>${esc(np.g)}${np.b?` <span class="muted">›</span> ${esc(np.b)}`:''}</b>
-    <span class="muted tiny">tested ${fmtDate(d)} · TEC ${row.TEC} · pH ${row.PH??'–'} · OM ${row.SOMpct??'–'}% · ${sz?sz.toLocaleString()+' sq-ft':'size not set'}</span>
+    <span class="tiny" style="color:#000">tested ${fmtDate(d)} · TEC ${row.TEC} · pH ${row.PH??'–'} · OM ${row.SOMpct??'–'}% · ${sz?sz.toLocaleString()+' sq-ft':'size not set'}</span>
     <span class="sumneeds">${needs.length?needs.slice(0,6).map(el=>`<span class="pill warn">${el}</span>`).join(' ')+(needs.length>6?` <span class="muted tiny">+${needs.length-6}</span>`:''):'<span class="pill">all targets met</span>'}</span></summary>
     ${nts.map(n=>`<div class="${nclass[n.kind]}">${n.kind==='tip'?'<b>Book tip:</b> ':''}${esc(n.text)}</div>`).join('')}
     <div class="scroll"><table><tr><th>Mineral</th><th>Found ppm</th><th>Target ppm</th><th>Found vs target</th><th>Floor</th><th>Max</th><th>% of TEC (range)</th><th>tecOz</th><th>limOz</th><th>Lbs for area</th><th></th></tr>${det}</table></div></details>`;
@@ -434,18 +435,19 @@ function vMix(){
     <div style="margin-top:10px">${Object.entries(groupGardens(gs)).map(([gn,ks])=>`<div style="margin-bottom:6px">${ks.length>1||nameParts(ks[0]).b?`<b class="tiny">${esc(gn)}</b> <a class="tiny" href="#" onclick="selGarden('${esc(gn).replace(/'/g,"\\'")}');return false">select whole garden</a><br>`:''}${ks.map(g=>`<label class="chip ${S.ui.sel.includes(g)?'on':''}"><input type="checkbox" ${S.ui.sel.includes(g)?'checked':''} onchange="toggleSel('${esc(g).replace(/'/g,"\\'")}')" hidden>${esc(nameParts(g).b&&ks.length>0?nameParts(g).b:g)}
       <input type="number" value="${size(g)}" step="50" title="sq-ft" onclick="event.stopPropagation()" onchange="S.sizes['${esc(g).replace(/'/g,"\\'")}']=+this.value||0;save();render()" style="width:78px"> <span class="muted tiny">sq-ft</span></label>`).join('')}</div>`).join('')}</div>
     <div class="muted tiny">Selected area: <b id="area">${selArea().toLocaleString()}</b> sq-ft ${selArea()?'':'<span class="pill warn">enter the sq-ft of each selected garden above</span>'}</div></div>
+  <div id="mixopts">${optionsHtml()}</div>
   <div class="two">
-   <div class="card"><div class="row"><h2>Products</h2><span class="right row noprint"><button class="btn" onclick="doRecommend()" title="Pick the best products for the needs, including ones you do not have yet">Recommend products</button><button class="btn alt" onclick="doSuggest()" title="Use only the products ticked Have">Use only what I have</button><button class="btn alt" onclick="clearMix()">Clear</button></span></div>
+   <div class="card"><div class="row"><h2>Products</h2><span class="right row noprint"><button class="btn" onclick="showOptions()" title="Compare a few different mixes with the reasons for each">Suggest mix options</button><button class="btn alt" onclick="doRecommend()" title="Pick the best products for the needs, including ones you do not have yet">Quick recommend</button><button class="btn alt" onclick="doSuggest()" title="Use only the products ticked Have">Use only what I have</button><button class="btn alt" onclick="clearMix()">Clear</button></span></div>
     <div class="row noprint" style="margin:6px 0"><label class="btn alt" style="cursor:pointer">📷 Scan a bottle / bag label<input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label><button class="btn alt" onclick="newProduct()">+ Add by hand</button><span id="labelmsg" class="muted tiny"></span></div>
     <div id="prodreview">${prodReviewHtml()}</div>
     <p class="tiny muted" style="margin:2px 0 6px">Tick the products you're willing to use; “Suggest” only picks from ticked ones.</p>
     <div class="scroll"><table><tr><th>Product</th><th title='Tick what you have on hand / are willing to use'>Have</th><th>Amount</th><th style="text-align:left">Contains</th></tr>${COMPS.map(c=>`<tr><td>${esc(c.id)}${(mix[c.id]>0&&!isOn(c.id))?' <span class="pill warn">to buy</span>':''}${c.custom?` <span class="pill">yours</span> <a href="#" class="tiny" onclick="delProduct('${esc(c.id).replace(/'/g,'')}');return false" title="remove">×</a>`:''}</td>
       <td><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="S.ui.allowed['${c.id}']=this.checked;save()"></td>
       <td style="white-space:nowrap"><input type="number" min="0" step="${unitOf(c.id)==='oz'?0.5:0.05}" value="${mix[c.id]?+(mix[c.id]*(unitOf(c.id)==='oz'?16:1)).toFixed(3):''}" placeholder="0" oninput="setAmt('${c.id}',this.value)"> <span class="seg tiny"><button class="${unitOf(c.id)==='oz'?'on':''}" onclick="setUnit('${c.id}','oz')">oz</button><button class="${unitOf(c.id)==='lb'?'on':''}" onclick="setUnit('${c.id}','lb')">lb</button></span><div class="muted tiny" id="lb_${c.id}">${mix[c.id]?'≈ '+(unitOf(c.id)==='oz'?mix[c.id].toFixed(2)+' lb':(mix[c.id]*16).toFixed(1)+' oz'):''}</div></td>
-      <td class="tiny muted" style="text-align:left">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</td></tr>`).join('')}</table></div></div>
-   <div><div class="card" id="gap"></div><div class="card" id="cover"></div><div class="card" id="proj"></div><div id="limits"></div></div>
+      <td class="tiny" style="text-align:left;color:#000">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</td></tr>`).join('')}</table></div></div>
+   <div class="stick"><div class="card" id="gap"></div><div class="card" id="cover"></div><div class="card" id="proj"></div><div id="limits"></div></div>
   </div>
-  <div class="row noprint"><button class="btn" onclick="setTab('plan')">Next: recipe →</button></div>`;
+  <div class="row noprint"><button class="btn" onclick="goShop()">🛒 Shopping list →</button><button class="btn alt" onclick="setTab('plan')">Full recipe →</button></div>`;
   renderGap();
 }
 function selGarden(gn){ const ks=gardensOf(S.ui.date).filter(k=>nameParts(k).g===gn); S.ui.sel=ks; save(); render(); }
@@ -455,6 +457,78 @@ function setUnit(id,u){ (S.ui.units ||= {})[id]=u; save(); render(); }
 function setAmt(id,v){ const m=curMix(), oz=unitOf(id)==='oz'; const n=parseFloat(v)/(oz?16:1); const l=document.getElementById('lb_'+id); if(l) l.textContent=n>0?'≈ '+(oz?n.toFixed(2)+' lb':(n*16).toFixed(1)+' oz'):''; if(n>0) m[id]=n; else delete m[id]; save(); renderGap(); }
 function clearMix(){ S.ui.mixes[mixKey()]={}; save(); render(); }
 const RECO=['AgSulphur','Pot_Sulfate1','Sul-Po-Mag','EpsomSalts','Gypsum','LimeStone','DolmiteLime','CalPhos','BoneMeal','Borax','Solubor','IronSulphate','Ironite','IronPlus','MangSulfate','CopperSulfate','BioMinCopper','ZincSulphate','SodiumMolybdate'];
+
+/* ---------- Mix options: a few different strategies, each with reasons ---------- */
+let OPTS=null;
+function limitsFor(){ const area=selArea(), lim={}; for(const [el,mx] of Object.entries(S.settings.maxLbsPerAcre)) lim[el]=0.99*mx*area/S.settings.sqftPerAcre; return lim; }
+function cleanMix(m){ for(const k in m) if(!(m[k]>0)) delete m[k]; return m; }
+function showOptions(){
+  if(!selArea()){ OPTS={err:'Enter the sq-ft of the selected gardens first.'}; render(); return; }
+  const need=needLbs(), lim=limitsFor();
+  const hasNeed=Object.values(need).some(v=>v>0.0005);
+  if(!hasNeed){ OPTS={err:'Nothing is needed for this selection — every mineral meets its target.'}; render(); return; }
+  const useful=c=>Object.keys(c.minerals).some(m=>EL.includes(m));
+  const full=COMPS.filter(c=>(RECO.includes(c.id)||c.custom||isOn(c.id))&&useful(c)).map(c=>c.id);
+  const mineIds=allowedIds();
+  const stapleIds=COMPS.filter(c=>(STAPLES.includes(c.id)||c.custom)&&useful(c)).map(c=>c.id);
+  const out=[];
+  const best=cleanMix(E.suggest(need,COMPS,full,{limits:lim}));
+  out.push({key:'best',title:'Best match',blurb:'Picks from the whole product list to cover each need as closely as possible, with the fewest side effects.',mix:best});
+  if(mineIds.length) out.push({key:'have',title:'Only what I have',blurb:'Uses only products ticked “Have”, so nothing new to buy. It may leave some needs short.',mix:cleanMix(E.suggest(need,COMPS,mineIds,{limits:lim}))});
+  // simple: keep the 4 products that do the most work in the best mix, then re-fit
+  const work=id=>{ const c=COMPS.find(x=>x.id===id); return Object.entries(c.minerals).reduce((t,[m,pc])=>t+((need[m]>0&&!(c.noCount||[]).includes(m))?Math.min(1,best[id]*pc/need[m]):0),0); };
+  const top=Object.keys(best).sort((a,b)=>work(b)-work(a)).slice(0,4);
+  if(top.length>=2 && Object.keys(best).length>4) out.push({key:'simple',title:'Simple (4 products or fewer)',blurb:'Keeps only the four products that do the most work, then re-balances the amounts. Fewer things to buy and spread.',mix:cleanMix(E.suggest(need,COMPS,top,{limits:lim}))});
+  if(stapleIds.length) out.push({key:'staples',title:'Common garden-store products',blurb:'Sticks to widely sold products (lime, sulfate of potash, ag sulfur, chelated or sulfate trace minerals).',mix:cleanMix(E.suggest(need,COMPS,stapleIds,{limits:lim}))});
+  // drop empty and duplicate mixes
+  const seen=new Set(); OPTS={need,list:out.filter(o=>{ const k=Object.keys(o.mix).sort().join(','); if(!k||seen.has(k)) return false; seen.add(k); return true; }).map(o=>({...o,stats:optStats(o.mix,need)}))};
+  render();
+}
+function optStats(mix,need){
+  const sup=E.supplied(mix,COMPS), cov={}, short=[], over=[];
+  for(const e of EL){ const n=need[e]||0, s2=sup[e]||0; if(n>0.0005){ cov[e]=s2/n; if(s2/n<0.9) short.push([e,s2/n]); else if(s2/n>1.15) over.push([e,s2/n]); } else if(s2>0.0005) over.push([e,null]); }
+  const met=Object.keys(cov).length-short.length, lim=E.limitCheck(sup,selArea(),S.settings).filter(l=>l.over).map(l=>l.element);
+  return {cov,short,over,met,total:Object.keys(cov).length,lim,n:Object.keys(mix).length};
+}
+function whyFor(id,lbs,need){
+  const c=COMPS.find(x=>x.id===id); const parts=[];
+  for(const [m,pc] of Object.entries(c.minerals)){ if((c.noCount||[]).includes(m)) continue; const sh=need[m]>0?lbs*pc/need[m]:0; if(sh>=0.05) parts.push(`${Math.round(sh*100)}% of your ${m.toLowerCase()}`); }
+  const tip=(typeof PRODUCT_TIPS!=='undefined'&&PRODUCT_TIPS[id])?' '+PRODUCT_TIPS[id]:'';
+  return (parts.length?'Supplies '+parts.join(', ')+'.':'Supplies small amounts of what you need.')+tip;
+}
+function optionsHtml(){
+  if(!OPTS) return '';
+  if(OPTS.err) return `<div class="warnbox">${esc(OPTS.err)}</div>`;
+  const pc=v=>Math.round(v*100)+'%';
+  return `<div class="okbox" style="background:#fff"><div class="row"><h3 style="margin:0">Mix options for these gardens</h3><span class="right tiny"><a href="#" onclick="OPTS=null;render();return false">close</a></span></div>
+  <p class="tiny muted" style="margin:2px 0 8px">Amounts are for the ${selArea().toLocaleString()} sq-ft selected. Pick one to load it into the mix below.</p>
+  <div class="optgrid">${OPTS.list.map((o,i)=>{ const st=o.stats; const ids=Object.keys(o.mix).sort((a,b)=>o.mix[b]-o.mix[a]);
+    return `<div class="optcard"><h3>${esc(o.title)}</h3><div class="tiny muted">${esc(o.blurb)}</div>
+    <div style="margin:6px 0"><span class="pill ${st.met===st.total?'':'low'}">${st.met} of ${st.total} needs covered</span> <span class="pill low">${st.n} product${st.n>1?'s':''}</span>${st.lim.length?` <span class="pill warn">over limit: ${esc(st.lim.join(', '))}</span>`:''}</div>
+    <table><tr><th>Product</th><th>Amount</th></tr>${ids.map(id=>`<tr><td>${esc(id)}${isOn(id)?'':' <span class="pill warn">to buy</span>'}<div class="why">${esc(whyFor(id,o.mix[id],OPTS.need))}</div></td><td style="white-space:nowrap">${(o.mix[id]*16).toFixed(1)} oz<div class="muted tiny">${o.mix[id].toFixed(2)} lb</div></td></tr>`).join('')}</table>
+    ${st.short.length?`<div class="tiny" style="color:#000"><b>Still short:</b> ${st.short.map(([e,v])=>`${e} ${pc(v)}`).join(', ')}</div>`:''}
+    ${st.over.length?`<div class="tiny" style="color:#000"><b>Overshoots:</b> ${st.over.map(([e,v])=>v===null?`${e} (not needed)`:`${e} ${pc(v)}`).join(', ')}</div>`:''}
+    <div class="row noprint" style="margin-top:8px"><button class="btn" onclick="useOption(${i},false)">Use this mix</button><button class="btn alt" onclick="useOption(${i},true)">Use &amp; get shopping list</button></div></div>`; }).join('')}</div></div>`;
+}
+function useOption(i,shop){ const o=OPTS.list[i]; S.ui.mixes[mixKey()]={...o.mix}; OPTS=null; save(); if(shop) goShop(); else render(); }
+/* ---------- Shopping list: where it lives, copy / save ---------- */
+function goShop(){ S.ui.scrollShop=true; setTab('plan'); }
+function shopItems(){ const mix=curMix(); return COMPS.filter(c=>mix[c.id]>0&&!isOn(c.id)); }
+function shopText(){
+  const mix=curMix(), items=shopItems();
+  const lines=['Soil shopping list','Test '+fmtDate(S.ui.date)+' · '+S.ui.sel.join(', ')+' · '+selArea().toLocaleString()+' sq-ft',''];
+  items.forEach(c=>{ const l=Math.ceil(mix[c.id]*2)/2; lines.push('☐ '+c.id+' — '+l.toFixed(1)+' lb ('+(mix[c.id]*16).toFixed(1)+' oz needed)'+(c.lbPerGal?' ≈ '+(mix[c.id]/c.lbPerGal).toFixed(2)+' gal':'')); });
+  const have=COMPS.filter(c=>mix[c.id]>0&&isOn(c.id)); if(have.length){ lines.push('','Already have (use):'); have.forEach(c=>lines.push('  '+c.id+' — '+(mix[c.id]*16).toFixed(1)+' oz')); }
+  return lines.join('\n');
+}
+async function copyShop(){
+  const t=shopText(); let ok=false;
+  try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){}
+  const m=document.getElementById('shopmsg');
+  if(ok){ if(m) m.textContent='Copied — paste it into Notes or a message.'; return; }
+  await download('shopping-list.txt',t,'text/plain'); if(m) m.textContent='Copy was blocked here, so a text file was offered instead.';
+}
+function saveShop(){ download('shopping-list.txt',shopText(),'text/plain'); }
 function doRecommend(){
   const need=needLbs(), area=selArea(), lim={}; for(const [el,mx] of Object.entries(S.settings.maxLbsPerAcre)) lim[el]=0.99*mx*area/S.settings.sqftPerAcre;
   const ids=COMPS.filter(c=>(RECO.includes(c.id)||c.custom||isOn(c.id)) && Object.keys(c.minerals).some(m=>EL.includes(m))).map(c=>c.id);
@@ -474,7 +548,7 @@ function renderGap(){
   <table><tr><th>Mineral</th><th>Need</th><th>Supplied</th><th style="text-align:left;min-width:120px">Coverage</th></tr>${els.map(e=>{
     const n=need[e]||0,s=sup[e]||0,pct=n? s/n*100 : (s>0?999:0);
     const over=n&&pct>115||(!n&&s>0);
-    return `<tr><td>${e} <span class="muted tiny">${E.SYMBOL[e]||''}</span>${['Molybdenum','Selenium'].includes(e)?' <span class="pill low" title="Toxic above about 1–2 ppm (The Ideal Soil)">caution</span>':''}</td><td>${f2(n)}</td><td>${f2(s)}</td><td style="text-align:left"><div class="bar"><i class="${over?'over':''}" style="width:${Math.min(100,n?pct:100)}%"></i></div><span class="tiny ${over?'':'muted'}" style="${over?'color:var(--warn)':''}">${n? Math.round(pct)+'%' : 'not needed'}</span></td></tr>`;
+    return `<tr><td>${e} <span class="muted tiny">${E.SYMBOL[e]||''}</span>${['Molybdenum','Selenium'].includes(e)?' <span class="pill low" title="Toxic above about 1–2 ppm (The Ideal Soil)">caution</span>':''}</td><td>${f2(n)}</td><td>${f2(s)}</td><td style="text-align:left"><div class="bar"><i class="${over?'over':''}" style="width:${Math.min(100,n?pct:100)}%"></i></div><span class="tiny" style="color:#000;font-weight:600">${n? Math.round(pct)+'%' : 'not needed'}</span></td></tr>`;
   }).join('')||'<tr><td colspan="4" class="muted">Nothing needed for this selection 🎉</td></tr>'}</table>`;
   renderCover(need); renderProjected(sup);
   const lim=E.limitCheck(sup,area,S.settings);
@@ -495,6 +569,7 @@ async function printRecipe(){
   try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:'soil-recipe.html',data:html}); return; } } }catch(e){ return; }
   window.print();
 }
+function SHOPBLOCK(buy,mix){ return `<h3 id="shoplist">🛒 Shopping list <span class="muted tiny">(products not ticked “Have”)</span></h3><div class="row noprint" style="margin-bottom:6px"><button class="btn" onclick="copyShop()">Copy list</button><button class="btn alt" onclick="saveShop()">Save as text</button><button class="btn alt" onclick="printRecipe()">Print / PDF</button><span id="shopmsg" class="muted tiny"></span></div><table><tr><th>Product</th><th>Buy (lb)</th>${hasLinks()?'<th class="noprint">Where to buy</th>':''}</tr>${buy.map(c=>`<tr><td>${esc(c.id)}</td><td>${(Math.ceil(mix[c.id]*2)/2).toFixed(1)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td>${hasLinks()?`<td class="noprint">${buyLink(c.id)}</td>`:''}</tr>`).join('')}</table>${hasLinks()?`<p class="tiny muted noprint">${esc(AFFILIATE_NOTE)}</p>`:''}`; }
 function vPlan(){
   const mix=curMix(), area=selArea(), items=COMPS.filter(c=>mix[c.id]>0);
   const sup=E.supplied(mix,COMPS), need=needLbs(), lim=E.limitCheck(sup,area,S.settings);
@@ -504,9 +579,8 @@ function vPlan(){
     <p class="sub" style="margin:0">${fmtDate(S.ui.date)} test · ${S.ui.sel.join(', ')} · ${area.toLocaleString()} sq-ft total</p></div>
     <div class="right row noprint"><button class="btn alt" onclick="doRecommend()" title="Pick the best products from the full catalog for these gardens">Suggest a mix</button><button class="btn alt" onclick="doSuggest()" title="Build a mix using only products ticked Have on the Mix tab">Use only what I have</button><button class="btn" onclick="printRecipe()">Print / PDF</button></div></div>
     ${bad.length?`<div class="warnbox">⚠ Over the yearly limit: ${bad.map(b=>b.element).join(', ')}. Adjust on the Mix tab.</div>`:''}
-    ${items.length? `<h3>Total to buy / spread</h3><table><tr><th>Product</th><th>Oz</th><th>Lbs</th><th>Oz per sq-ft</th></tr>${items.map(c=>`<tr><td>${esc(c.id)}</td><td>${(mix[c.id]*16).toFixed(1)}</td><td>${mix[c.id].toFixed(2)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td><td>${(mix[c.id]*16/area).toFixed(4)}</td></tr>`).join('')}</table>
+    ${items.length? `${(()=>{const buy=items.filter(c=>!isOn(c.id)); return buy.length?SHOPBLOCK(buy,mix):'<div class="okbox">Nothing to buy: every product in this mix is ticked “Have”.</div>'})()}<h3>Total to buy / spread</h3><table><tr><th>Product</th><th>Oz</th><th>Lbs</th><th>Oz per sq-ft</th></tr>${items.map(c=>`<tr><td>${esc(c.id)}</td><td>${(mix[c.id]*16).toFixed(1)}</td><td>${mix[c.id].toFixed(2)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td><td>${(mix[c.id]*16/area).toFixed(4)}</td></tr>`).join('')}</table>
     <h3>Split by garden (same rate per sq-ft)</h3><div class="scroll"><table><tr><th>Product</th>${S.ui.sel.map(g=>`<th>${esc(g)} <span class="muted tiny">${size(g)} sq-ft</span></th>`).join('')}</tr>${items.map(c=>`<tr><td>${esc(c.id)}</td>${S.ui.sel.map(g=>{const l=mix[c.id]*size(g)/area;return `<td>${l.toFixed(2)} lb <span class="muted tiny">(${(l*16).toFixed(1)} oz)</span></td>`}).join('')}</tr>`).join('')}</table></div>
-    ${(()=>{const buy=items.filter(c=>!isOn(c.id)); return buy.length?`<h3>Shopping list <span class="muted tiny">(products not ticked “Have”)</span></h3><table><tr><th>Product</th><th>Buy (lb)</th>${hasLinks()?'<th class="noprint">Where to buy</th>':''}</tr>${buy.map(c=>`<tr><td>${esc(c.id)}</td><td>${(Math.ceil(mix[c.id]*2)/2).toFixed(1)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td>${hasLinks()?`<td class="noprint">${buyLink(c.id)}</td>`:''}</tr>`).join('')}</table>${hasLinks()?`<p class="tiny muted noprint">${esc(AFFILIATE_NOTE)}</p>`:''}`:''})()}
     <h3>Notes from The Ideal Soil</h3><ul class="tiny" style="margin:4px 0 10px 18px;padding:0">${planTips(items).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td>${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>`
     : `<p class="muted">No products in the mix yet. Let the app pick products for you, or build one by hand on the Mix tab.</p><div class="row noprint"><button class="btn" onclick="doRecommend()">Suggest a mix</button><button class="btn alt" onclick="doSuggest()">Use only what I have</button></div>`}</div>`;
@@ -548,9 +622,9 @@ function importXml(file){ if(!file) return; file.text().then(t=>{
     e.querySelectorAll('TestId').forEach(r=>{ const row={}; for(const f of FIELDS){ const v=parseFloat(r.getAttribute(f)); if(!isNaN(v)) row[f]=v; }
       (S.tests[k] ||= {})[r.getAttribute('Name')]=row; n++; }); });
   save(); alert(`Imported ${n} test rows.`); S.ui.date=dates()[0]; render(); }); }
-async function download(name,text){
+async function download(name,text,mime){
   try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:name,data:text}); return; } } }catch(e){ return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name; a.click(); }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/json'})); a.download=name; a.click(); }
 function exportAll(){ download('soil-planner-backup.json',JSON.stringify(S,null,1)); }
 function importBackup(f){ if(!f) return; f.text().then(t=>{ try{ S=JSON.parse(t); save(); render(); }catch(e){ alert('Not a valid backup file'); } }); }
 
