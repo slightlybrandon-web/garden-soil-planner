@@ -509,8 +509,8 @@ function vNeeds(){
   <div class="card scroll"><table class="needs">${head}${rows}</table>
     <p class="tiny muted">Shading = how far below target. <b>Ideal target (tecOz)</b> aims at the Ideal Soil target for the soil's TEC; <b>Target + minimum (limOz)</b> is the larger of that and the book's minimum-ppm floor (Ca 750, Mg 100, K 100, Na 25, P 100, S 50, B 1, Fe 50, Mn 25, Cu 5, Zn 10).</p></div>
   ${balanceCard(gs,an)}
-  <div class="row" style="margin:4px 0"><h2 style="margin:0">Detail</h2><span class="muted tiny">${gs.length===1?'':'Click a bed to open it · '}<a href="#" onclick="document.querySelectorAll('details.gd').forEach(x=>x.open=true);return false">open all</a> · <a href="#" onclick="document.querySelectorAll('details.gd').forEach(x=>x.open=false);return false">close all</a></span></div>
-  ${gs.map(g=>detailHtml(g,an[g],d,bk,gs.length===1)).join('')}
+  <div class="row" style="margin:4px 0"><h2 style="margin:0">Detail</h2><span class="muted tiny">${gs.length===1?'':'Click a bed heading to collapse it · '}<a href="#" onclick="document.querySelectorAll('details.gd').forEach(x=>x.open=true);return false">open all</a> · <a href="#" onclick="document.querySelectorAll('details.gd').forEach(x=>x.open=false);return false">close all</a></span></div>
+  ${gs.map(g=>detailHtml(g,an[g],d,bk,true)).join('')}
   <p class="tiny muted">Bar: fill = ppm found, black tick = target, grey tick = minimum floor. Not covered: nitrogen (the book aims for roughly 40–50 ppm available N) and chlorine (minimum 25 ppm, 1–2× sodium). Most soil labs don't report them. Silicon and aluminium have no book targets.</p>
   <div class="row noprint"><button class="btn" onclick="setTab('mix')">Next: build a mix →</button></div>`;
 }
