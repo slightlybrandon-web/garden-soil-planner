@@ -442,7 +442,7 @@ function vMix(){
     <div id="prodreview">${prodReviewHtml()}</div>
     <p class="tiny muted" style="margin:2px 0 6px">Tick the products you're willing to use; “Suggest” only picks from ticked ones.</p>
     <div class="scroll"><table><tr><th>Product</th><th title='Tick what you have on hand / are willing to use'>Have</th><th>Amount</th><th style="text-align:left">Contains</th></tr>${COMPS.map(c=>`<tr><td>${esc(c.id)}${(mix[c.id]>0&&!isOn(c.id))?' <span class="pill warn">to buy</span>':''}${c.custom?` <span class="pill">yours</span> <a href="#" class="tiny" onclick="delProduct('${esc(c.id).replace(/'/g,'')}');return false" title="remove">×</a>`:''}</td>
-      <td><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="S.ui.allowed['${c.id}']=this.checked;save()"></td>
+      <td><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="toggleHave('${c.id}',this.checked)"></td>
       <td style="white-space:nowrap"><input type="number" min="0" step="${unitOf(c.id)==='oz'?0.5:0.05}" value="${mix[c.id]?+(mix[c.id]*(unitOf(c.id)==='oz'?16:1)).toFixed(3):''}" placeholder="0" oninput="setAmt('${c.id}',this.value)"> <span class="seg tiny"><button class="${unitOf(c.id)==='oz'?'on':''}" onclick="setUnit('${c.id}','oz')">oz</button><button class="${unitOf(c.id)==='lb'?'on':''}" onclick="setUnit('${c.id}','lb')">lb</button></span><div class="muted tiny" id="lb_${c.id}">${mix[c.id]?'≈ '+(unitOf(c.id)==='oz'?mix[c.id].toFixed(2)+' lb':(mix[c.id]*16).toFixed(1)+' oz'):''}</div></td>
       <td class="tiny" style="text-align:left;color:#000">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</td></tr>`).join('')}</table></div></div>
    <div class="stick"><div class="card" id="gap"></div><div class="card" id="cover"></div><div class="card" id="proj"></div><div id="limits"></div></div>
@@ -453,6 +453,7 @@ function vMix(){
 function selGarden(gn){ const ks=gardensOf(S.ui.date).filter(k=>nameParts(k).g===gn); S.ui.sel=ks; save(); render(); }
 function toggleSel(g){ const s=S.ui.sel; const i=s.indexOf(g); if(i>=0){ if(s.length>1) s.splice(i,1);} else s.push(g); save(); render(); }
 const unitOf=id=>(S.ui.units&&S.ui.units[id])||'oz';
+function toggleHave(id,on){ S.ui.allowed[id]=on; if(!on){ for(const k in S.ui.mixes){ if(k.startsWith(S.ui.date+'|')) delete S.ui.mixes[k][id]; } } save(); render(); }
 function setUnit(id,u){ (S.ui.units ||= {})[id]=u; save(); render(); }
 function setAmt(id,v){ const m=curMix(), oz=unitOf(id)==='oz'; const n=parseFloat(v)/(oz?16:1); const l=document.getElementById('lb_'+id); if(l) l.textContent=n>0?'≈ '+(oz?n.toFixed(2)+' lb':(n*16).toFixed(1)+' oz'):''; if(n>0) m[id]=n; else delete m[id]; save(); renderGap(); }
 function clearMix(){ S.ui.mixes[mixKey()]={}; save(); render(); }
