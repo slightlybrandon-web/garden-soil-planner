@@ -252,6 +252,49 @@ function render(){
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
+  try{ glossify($('#main')); }catch(e){}
+}
+/* ---------------- GLOSSARY (hover definitions) ---------------- */
+const GLOSS={
+ 'TEC':'Total exchange capacity (also called CEC): how many cations the soil can hold, in meq per 100 g. Every target is scaled from it.',
+ 'CEC':'Cation exchange capacity: the soil’s ability to hold positively charged nutrients such as Ca, Mg and K.',
+ 'meq':'Milliequivalent: a unit of chemical charge. Used to express how much of the soil’s holding capacity each nutrient fills.',
+ 'ppm':'Parts per million (mg of nutrient per kg of soil). About 2 lb per acre per ppm in the top 6–7 inches.',
+ 'Mehlich-3':'The lab extraction method these targets are based on.',
+ 'base saturation':'The share of the soil’s holding capacity occupied by Ca, Mg, K and Na, as a percentage.',
+ 'tecOz':'Ounces needed to reach the ideal target for your TEC.',
+ 'limOz':'Ounces needed to reach the target OR the minimum floor, whichever is larger.',
+ 'sq-ft':'Square feet of garden area.',
+ 'lb/acre':'Pounds per acre, the unit used for yearly application limits.',
+ 'pH':'Acidity scale: 7 is neutral, lower is acidic, higher is alkaline.',
+ 'SOM':'Soil organic matter, as a percent.',
+ 'EC':'Electrical conductivity: a measure of soluble salts.',
+ 'Calcium':'Ca – builds soil structure; ideal about 68% of TEC.',
+ 'Magnesium':'Mg – needed for chlorophyll; ideal about 12% of TEC.',
+ 'Potassium':'K – drives fruit and water balance; ideal about 4% of TEC.',
+ 'Sodium':'Na – small amounts help nutrient uptake; ideal about 1.5% of TEC.',
+ 'Phosphorous':'P – energy transfer and roots/flowers.','Phosphorus':'P – energy transfer and roots/flowers.',
+ 'Sulphur':'S – protein and flavor; target is about half of K.','Sulfur':'S – protein and flavor; target is about half of K.',
+ 'Boron':'B – cell walls and pollination; toxic if overapplied.',
+ 'Iron':'Fe – chlorophyll production.','Manganese':'Mn – photosynthesis enzymes.','Copper':'Cu – enzymes and disease resistance; easy to overapply.',
+ 'Zinc':'Zn – growth hormones and enzymes.','Cobalt':'Co – trace element, needed in tiny amounts.',
+ 'Molybdenum':'Mo – nitrogen use; toxic above about 1–2 ppm.','Selenium':'Se – trace element; toxic above about 1–2 ppm.',
+ 'Aluminium':'Al – not a nutrient; high levels can harm roots.','Silicon':'Si – strengthens plant tissue.',
+ 'Ca':'Calcium','Mg':'Magnesium','Na':'Sodium','Fe':'Iron','Mn':'Manganese','Cu':'Copper','Zn':'Zinc','Mo':'Molybdenum','Se':'Selenium','Co':'Cobalt',
+ 'Ideal Soil':'The book by Michael Astera whose targets and rules this app follows.',
+ 'shopping list':'Products you still need to buy (not ticked “Have”).'
+};
+const GL_RE=new RegExp('(?<![\\w-])('+Object.keys(GLOSS).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\\/-]/g,'\\$&')).join('|')+')(?![\\w])','g');
+function glossify(root){
+  if(!root) return;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>/^(SCRIPT|STYLE|TEXTAREA|OPTION|SELECT|ABBR|INPUT)$/.test(n.parentNode.nodeName)||n.parentNode.closest('abbr,button,[title]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  const nodes=[]; while(w.nextNode()) nodes.push(w.currentNode);
+  for(const n of nodes){
+    const t=n.nodeValue; GL_RE.lastIndex=0; if(!GL_RE.test(t)) continue; GL_RE.lastIndex=0;
+    const f=document.createDocumentFragment(); let last=0,m;
+    while((m=GL_RE.exec(t))){ f.append(t.slice(last,m.index)); const a=document.createElement('abbr'); a.title=GLOSS[m[1]]; a.textContent=m[1]; f.append(a); last=m.index+m[1].length; }
+    f.append(t.slice(last)); n.replaceWith(f);
+  }
 }
 const dateSelect = () => `<select onchange="S.ui.date=this.value;save();render()">${dates().map(d=>`<option value="${d}" ${d===S.ui.date?'selected':''}>${fmtDate(d)}</option>`).join('')}</select>`;
 const basisSeg = () => `<span class="seg"><button class="${S.ui.basis==='tec'?'on':''}" onclick="S.ui.basis='tec';save();render()">tecOz</button><button class="${S.ui.basis==='lim'?'on':''}" onclick="S.ui.basis='lim';save();render()">limOz</button></span>`;
@@ -403,6 +446,18 @@ function renderGap(){
 }
 
 /* ---------------- PLAN ---------------- */
+/* Affiliate / buy links: add entries like  Borax:'https://example.com/product?tag=YOURID'  (https only). Empty = no links shown. */
+const BUY_LINKS={};
+const AFFILIATE_NOTE='Some links may be affiliate links: we may earn a small commission at no extra cost to you. Recommendations come from your soil data, not from the links.';
+const hasLinks=()=>Object.values(BUY_LINKS).some(u=>/^https:\/\//.test(u));
+const buyLink=id=>/^https:\/\//.test(BUY_LINKS[id]||'')?`<a href="${esc(BUY_LINKS[id])}" target="_blank" rel="sponsored noopener noreferrer">Buy</a>`:'<span class="muted tiny">–</span>';
+async function printRecipe(){
+  const card=document.querySelector('#main .card'); if(!card) return;
+  const clone=card.cloneNode(true); clone.querySelectorAll('.noprint,button').forEach(n=>n.remove());
+  const html='<!doctype html><meta charset="utf-8"><title>Soil recipe</title><style>body{font:14px system-ui,sans-serif;max-width:800px;margin:20px auto;padding:0 12px;color:#222}table{border-collapse:collapse;width:100%;margin:6px 0 14px}th,td{border-bottom:1px solid #ccc;padding:4px 8px;text-align:left}h2{margin:0}h3{margin:16px 0 4px}.muted,.tiny{color:#666;font-size:12px}.warnbox{border:1px solid #c60;padding:6px}abbr{text-decoration:none}@media print{.hint{display:none}}</style><p class="hint muted">Open this file in your browser and choose Print → Save as PDF.</p>'+clone.innerHTML;
+  try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:'soil-recipe.html',data:html}); return; } } }catch(e){ return; }
+  window.print();
+}
 function vPlan(){
   const mix=curMix(), area=selArea(), items=COMPS.filter(c=>mix[c.id]>0);
   const sup=E.supplied(mix,COMPS), need=needLbs(), lim=E.limitCheck(sup,area,S.settings);
@@ -410,14 +465,14 @@ function vPlan(){
   const bad=lim.filter(l=>l.over);
   $('#main').innerHTML=`<div class="card"><div class="row"><div><h2>Recipe</h2>
     <p class="sub" style="margin:0">${fmtDate(S.ui.date)} test · ${S.ui.sel.join(', ')} · ${area.toLocaleString()} sq-ft total</p></div>
-    <button class="btn right noprint" onclick="window.print()">Print</button></div>
+    <div class="right row noprint"><button class="btn alt" onclick="doRecommend()" title="Pick the best products from the full catalog for these gardens">Suggest a mix</button><button class="btn alt" onclick="doSuggest()" title="Build a mix using only products ticked Have on the Mix tab">Use only what I have</button><button class="btn" onclick="printRecipe()">Print / PDF</button></div></div>
     ${bad.length?`<div class="warnbox">⚠ Over the yearly limit: ${bad.map(b=>b.element).join(', ')}. Adjust on the Mix tab.</div>`:''}
     ${items.length? `<h3>Total to buy / spread</h3><table><tr><th>Product</th><th>Lbs</th><th>Oz</th><th>Oz per sq-ft</th></tr>${items.map(c=>`<tr><td>${esc(c.id)}</td><td>${mix[c.id].toFixed(2)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td><td>${(mix[c.id]*16).toFixed(1)}</td><td>${(mix[c.id]*16/area).toFixed(4)}</td></tr>`).join('')}</table>
     <h3>Split by garden (same rate per sq-ft)</h3><div class="scroll"><table><tr><th>Product</th>${S.ui.sel.map(g=>`<th>${esc(g)} <span class="muted tiny">${size(g)} sq-ft</span></th>`).join('')}</tr>${items.map(c=>`<tr><td>${esc(c.id)}</td>${S.ui.sel.map(g=>{const l=mix[c.id]*size(g)/area;return `<td>${l.toFixed(2)} lb <span class="muted tiny">(${(l*16).toFixed(1)} oz)</span></td>`}).join('')}</tr>`).join('')}</table></div>
-    ${(()=>{const buy=items.filter(c=>!isOn(c.id)); return buy.length?`<h3>Shopping list <span class="muted tiny">(products not ticked “Have”)</span></h3><table><tr><th>Product</th><th>Buy (lb)</th></tr>${buy.map(c=>`<tr><td>${esc(c.id)}</td><td>${(Math.ceil(mix[c.id]*2)/2).toFixed(1)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td></tr>`).join('')}</table>`:''})()}
+    ${(()=>{const buy=items.filter(c=>!isOn(c.id)); return buy.length?`<h3>Shopping list <span class="muted tiny">(products not ticked “Have”)</span></h3><table><tr><th>Product</th><th>Buy (lb)</th>${hasLinks()?'<th class="noprint">Where to buy</th>':''}</tr>${buy.map(c=>`<tr><td>${esc(c.id)}</td><td>${(Math.ceil(mix[c.id]*2)/2).toFixed(1)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td>${hasLinks()?`<td class="noprint">${buyLink(c.id)}</td>`:''}</tr>`).join('')}</table>${hasLinks()?`<p class="tiny muted noprint">${esc(AFFILIATE_NOTE)}</p>`:''}`:''})()}
     <h3>Notes from The Ideal Soil</h3><ul class="tiny" style="margin:4px 0 10px 18px;padding:0">${planTips(items).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td>${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>`
-    : `<p class="muted">No products in the mix yet. Go to the Mix tab and enter pounds or press “Suggest a mix”.</p>`}</div>`;
+    : `<p class="muted">No products in the mix yet. Let the app pick products for you, or build one by hand on the Mix tab.</p><div class="row noprint"><button class="btn" onclick="doRecommend()">Suggest a mix</button><button class="btn alt" onclick="doSuggest()">Use only what I have</button></div>`}</div>`;
 }
 
 /* ---------------- TESTS ---------------- */
