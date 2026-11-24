@@ -51,7 +51,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
 <header><h1>🌱 Garden Soil Planner</h1>
 <nav id="nav"></nav></header>
 <main id="main"></main>
-<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow one specific method: TEC-based ideal percentages, 6-inch soil samples, Logan-Labs-style ppm values. Check or change them in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser.</footer>
+<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser.</footer>
 
 <script>// Soil recommendation engine. Pure functions, no DOM. Used by the app and by test.js.
 (function (root) {
@@ -77,6 +77,13 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
     fixedPpm:  { Cobalt: 1.25, Molybdenum: 1.25, Selenium: 1.25 },
     // limOz = bigger of the TEC target and this minimum-ppm floor (non-cations)
     minPpm:    { Sulphur: 50, Phosphorous: 100, Boron: 1.0, Iron: 50, Manganese: 25, Copper: 5, Zinc: 10 },
+    // --- from The Ideal Soil (Astera), Mehlich-3 chart ---
+    useCationFloors: true,                                   // book minimums, esp. for low-CEC soils (< 7 meq)
+    cationFloor: { Calcium: 750, Magnesium: 100, Potassium: 100, Sodium: 25 },
+    satRange: { Calcium: [60, 85], Magnesium: [10, 20], Potassium: [2, 5], Sodium: [1, 4] },  // % of TEC
+    maxPpm: { Sulphur: 300, Boron: 4, Zinc: 50, Copper: 25, Manganese: 50, Molybdenum: 2, Selenium: 2 },
+    lowCec: 7,                                               // meq; below this the book treats soil as low-CEC
+    highPh: { use: false, threshold: 7.0, idealPct: { Calcium: 0.835, Magnesium: 0.10, Potassium: 0.05, Sodium: 0.015 } },
     // Yearly maximum, lbs of the ELEMENT per acre (MaximumApplicationRates tab)
     maxLbsPerAcre: { Boron: 2, Copper: 8, Sulphur: 90, Zinc: 12.6, Manganese: 14, Calcium: 8000 }
   };
@@ -84,24 +91,52 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
   function ppmToOzSqft(ppm, S) { return ppm * S.lbsPerAcrePerPpm * 16 / S.sqftPerAcre; }
   function ozSqftToPpm(oz, S) { return oz * S.sqftPerAcre / 16 / S.lbsPerAcrePerPpm; }
 
-  // Returns {Element: {found, target, minTarget, tecPpm, limPpm, tecOz, limOz}} for one soil-test row.
+  // Returns {Element: {found, target, floor, tecPpm, limPpm, tecOz, limOz, satPct, satRange, maxPpm, high}} for one soil-test row.
   function analyze(row, S) {
     S = S || DEFAULTS;
     const tec = row.TEC, out = {};
-    for (const el of ELEMENTS) {
+    const hp = S.highPh && S.highPh.use && row.PH > S.highPh.threshold;
+    const ideal = hp ? S.highPh.idealPct : S.idealPct;
+    // secondary targets are ratios of ideal K and ideal Ca, so scale them when the cation targets change
+    const kScale = ideal.Potassium / S.idealPct.Potassium, caScale = ideal.Calcium / S.idealPct.Calcium;
+    for (const el of EL_LIST()) {
       const found = row[el];
       if (found === undefined || isNaN(found)) continue;
-      let target;
-      if (S.idealPct[el] !== undefined) target = S.idealPct[el] * tec * S.ppmPerMeq[el];
+      let target, floor;
+      const isCat = S.idealPct[el] !== undefined;
+      if (isCat) target = ideal[el] * tec * S.ppmPerMeq[el];
       else if (S.fixedPpm[el] !== undefined) target = S.fixedPpm[el];
-      else target = S.ppmPerTec[el] * tec;
+      else target = S.ppmPerTec[el] * tec * (el === 'Boron' ? caScale : kScale);
       const tecPpm = Math.max(0, target - found);
-      const floor = S.minPpm[el];
+      floor = isCat ? (S.useCationFloors ? S.cationFloor[el] : undefined) : S.minPpm[el];
       const limPpm = floor !== undefined ? Math.max(tecPpm, Math.max(0, floor - found)) : tecPpm;
-      out[el] = { found, target, floor, tecPpm, limPpm,
-                  tecOz: ppmToOzSqft(tecPpm, S), limOz: ppmToOzSqft(limPpm, S) };
+      const r = { found, target, floor, tecPpm, limPpm, tecOz: ppmToOzSqft(tecPpm, S), limOz: ppmToOzSqft(limPpm, S), highPhTargets: !!(hp && isCat) };
+      if (isCat) { r.satPct = found / (tec * S.ppmPerMeq[el]) * 100; r.satRange = S.satRange && S.satRange[el];
+                   r.high = !!(r.satRange && r.satPct > r.satRange[1]); r.low = !!(r.satRange && r.satPct < r.satRange[0]); }
+      else if (S.maxPpm && S.maxPpm[el] !== undefined) { r.maxPpm = S.maxPpm[el]; r.high = found > S.maxPpm[el]; }
+      out[el] = r;
     }
     return out;
+  }
+  function EL_LIST() { return ELEMENTS; }
+
+  // Plain-language notes about a test row, following the book.
+  function notes(row, an, S) {
+    S = S || DEFAULTS; const n = [];
+    if (row.TEC < S.lowCec) n.push({ kind: 'info', text: `Low-CEC soil (TEC ${row.TEC} meq, under ${S.lowCec}): the book says apply the minimums, expect nutrients to leach, keep irrigation modest and retest often. Humus, biochar, zeolite or calcium bentonite can raise CEC.` });
+    if (row.PH > S.highPh.threshold) n.push({ kind: 'warn', text: `pH ${row.PH} is above 7: Mehlich-3 can dissolve carbonates and inflate Ca, Mg and TEC. The book suggests an ammonium-acetate pH 8.2 test for CEC and different cation targets (Ca ~83.5%, Mg 10%, K 5%, Na 1.5%). You can switch those targets on in Settings.` });
+    else if (row.PH !== undefined && (row.PH < 6.0)) n.push({ kind: 'info', text: `pH ${row.PH} is below the book's 6.4–6.5 target. The book expects pH to self-correct as Ca and Mg are balanced, so lime is not added just for pH.` });
+    if (row.SOMpct !== undefined && row.SOMpct < 2) n.push({ kind: 'info', text: `Organic matter ${row.SOMpct}% is under the book's 2–10% range (about 4% is described as ideal).` });
+    const c = an.Calcium, m = an.Magnesium, k = an.Potassium, na = an.Sodium;
+    if (c && m) {
+      if (c.high && m.low) n.push({ kind: 'tip', text: 'Book: Ca high and Mg low → Epsom salts (magnesium sulfate).' });
+      if (m.high && c.low) n.push({ kind: 'tip', text: 'Book: Mg high and Ca low → gypsum (calcium sulfate).' });
+      if (c.high && m.high && k && k.low) n.push({ kind: 'tip', text: 'Book: Ca and Mg both high, K low → potassium sulfate.' });
+    }
+    if (na && na.high) n.push({ kind: 'tip', text: 'Book: sodium high → gypsum or the sulfate of whichever cation is short, so the sulfate carries the sodium away.' });
+    for (const el of ['Zinc', 'Copper', 'Boron', 'Manganese', 'Sulphur']) if (an[el] && an[el].high) n.push({ kind: 'warn', text: `${el} is above the book's maximum (${an[el].maxPpm} ppm). Do not add any.` });
+    if (an.Zinc && an.Phosphorous && an.Phosphorous.found > 2 * an.Phosphorous.target && an.Zinc.found < 10) n.push({ kind: 'warn', text: 'High phosphorus can tie up zinc.' });
+    return n;
   }
 
   // Pounds of each element a mix supplies. mix = {compoundId: lbs}
@@ -109,7 +144,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
     const tot = {};
     for (const c of compounds) {
       const lbs = mix[c.id] || 0; if (!lbs) continue;
-      for (const [m, pct] of Object.entries(c.minerals)) tot[m] = (tot[m] || 0) + lbs * pct;
+      for (const [m, pct] of Object.entries(c.minerals)) { if (c.noCount && c.noCount.includes(m)) continue; tot[m] = (tot[m] || 0) + lbs * pct; }
     }
     return tot;
   }
@@ -163,12 +198,12 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#f1ebdc;colo
     return res;
   }
 
-  const api = { ELEMENTS, SYMBOL, GROUP, DEFAULTS, analyze, supplied, suggest, limitCheck, ppmToOzSqft, ozSqftToPpm };
+  const api = { ELEMENTS, SYMBOL, GROUP, DEFAULTS, analyze, notes, supplied, suggest, limitCheck, ppmToOzSqft, ozSqftToPpm };
   if (typeof module !== 'undefined') module.exports = api; else root.SoilEngine = api;
 })(this);
 </script>
 <script>
-const SEED = {"minerals":{"Nitrogen":{"symbol":"N","mass":14.007,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Calcium":{"symbol":"Ca","mass":40.078,"ideal":0.68,"minPct":0.6,"maxPct":0.85,"minPPM":750.0,"type":"cation"},"Magnesium":{"symbol":"Mg","mass":24.305,"ideal":0.12,"minPct":0.1,"maxPct":0.2,"minPPM":100.0,"type":"cation"},"Potassium":{"symbol":"K","mass":39.098,"ideal":0.04,"minPct":0.02,"maxPct":0.05,"minPPM":40.0,"type":"cation"},"Sodium":{"symbol":"Na","mass":22.99,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":25.0,"type":"cation"},"Phosphorous":{"symbol":"P","mass":30.974,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":100.0,"type":"anion"},"Sulphur":{"symbol":"S","mass":32.066,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":50.0,"type":"anion"},"Boron":{"symbol":"B","mass":10.811,"ideal":0.001,"minPct":-1.0,"maxPct":-1.0,"minPPM":1.0,"type":"trace"},"Iron":{"symbol":"Fe","mass":55.933,"ideal":0.027,"minPct":0.01,"maxPct":0.054,"minPPM":50.0,"type":"trace"},"Manganese":{"symbol":"Mn","mass":54.938,"ideal":0.4166,"minPct":0.33,"maxPct":0.5,"minPPM":50.0,"type":"trace"},"Copper":{"symbol":"Cu","mass":63.546,"ideal":0.5,"minPct":-1.0,"maxPct":-1.0,"minPPM":5.0,"type":"trace"},"Zinc":{"symbol":"Zn","mass":65.39,"ideal":0.1,"minPct":-1.0,"maxPct":-1.0,"minPPM":10.0,"type":"trace"},"Clorine":{"symbol":"Cl","mass":35.453,"ideal":1.5,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Aluminium":{"symbol":"Al","mass":26.982,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Chromium":{"symbol":"Cr","mass":51.996,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Cobalt":{"symbol":"Co","mass":58.933,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Iodine":{"symbol":"I","mass":126.904,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Molybdenum":{"symbol":"Mo","mass":95.95,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Selenium":{"symbol":"Se","mass":78.972,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Tin":{"symbol":"Sn","mass":118.71,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Nickel":{"symbol":"Ni","mass":56.693,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Flourine":{"symbol":"F","mass":18.998,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Carbon":{"symbol":"C","mass":12.011,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Silicon":{"symbol":"Si","mass":28.086,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Oxygen":{"symbol":"O","mass":15.999,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":0.0,"type":"n/a"}},"compounds":[{"id":"Ironite","minerals":{"Calcium":0.08,"Sulphur":0.05,"Iron":0.2}},{"id":"IronPlus","minerals":{"Magnesium":0.02,"Iron":0.165}},{"id":"EncapIron","minerals":{"Calcium":0.11,"Magnesium":0.02,"Iron":0.165}},{"id":"AgSulphur","minerals":{"Sulphur":0.9}},{"id":"Pot_Sulfate1","minerals":{"Potassium":0.5,"Sulphur":0.17}},{"id":"CalPhos","minerals":{"Calcium":0.2,"Phosphorous":0.088}},{"id":"LimeStone","minerals":{"Calcium":0.4,"Magnesium":0.005}},{"id":"Borax","minerals":{"Sodium":0.1206,"Boron":0.1134}},{"id":"BoricAcid","minerals":{"Boron":0.175}},{"id":"BoneMeal","minerals":{"Calcium":0.12,"Sodium":0.057,"Phosphorous":0.13156}},{"id":"WoodAsh","minerals":{"Calcium":0.14,"Potassium":0.05}},{"id":"Gypsum","minerals":{"Calcium":0.205,"Sulphur":0.17}},{"id":"Pot_Sulfate2","minerals":{"Potassium":0.8301,"Sulphur":0.175}},{"id":"GreenSand","minerals":{"Potassium":0.0581,"Iron":0.09}},{"id":"DolmiteLime","minerals":{"Calcium":0.22,"Magnesium":0.13}},{"id":"ChickenManure","minerals":{"Potassium":0.01,"Phosphorous":0.0103}},{"id":"Sul-Po-Mag","minerals":{"Magnesium":0.11,"Potassium":0.1826,"Sulphur":0.22}},{"id":"EpsomSalts","minerals":{"Magnesium":0.1,"Sulphur":0.13}},{"id":"RedmondSalt","minerals":{"Calcium":0.055,"Magnesium":0.0009,"Sodium":0.22,"Sulphur":0.002,"Boron":0.0107,"Iron":0.0005,"Molybdenum":0.0008,"Cobalt":0.0008}},{"id":"IronSulphate","minerals":{"Sulphur":0.18,"Iron":0.3}},{"id":"MangSulfate","minerals":{"Sulphur":0.19,"Manganese":0.32}},{"id":"BioMinCopper","minerals":{"Copper":0.04}},{"id":"SodiumMolybdate","minerals":{"Sodium":0.19,"Molybdenum":0.3965}},{"id":"ZincSulphate","minerals":{"Sulphur":0.198,"Zinc":0.405}},{"id":"AxiloMix5","minerals":{"Magnesium":0.198,"Boron":0.005,"Iron":0.04,"Manganese":0.04,"Copper":0.015,"Zinc":0.015}},{"id":"LawnLime","minerals":{"Calcium":0.32,"Magnesium":0.43}},{"id":"DrEarth4-6-3","minerals":{"Nitrogen":0.04,"Calcium":0.075,"Potassium":0.03,"Phosphorous":0.06}},{"id":"GardenTone3-4-4","minerals":{"Nitrogen":0.03,"Calcium":0.05,"Magnesium":0.01,"Potassium":0.04,"Phosphorous":0.04,"Sulphur":0.02}},{"id":"CitrusTone5-2-6","minerals":{"Nitrogen":0.05,"Calcium":0.02,"Magnesium":0.005,"Potassium":0.06,"Phosphorous":0.02,"Sulphur":0.01}},{"id":"TomatoTone3-4-6","minerals":{"Nitrogen":0.03,"Calcium":0.08,"Potassium":0.06,"Phosphorous":0.04,"Sulphur":0.03}},{"id":"JobesVeg2-5-3","minerals":{"Nitrogen":0.02,"Calcium":0.07,"Magnesium":0.005,"Potassium":0.03,"Phosphorous":0.05,"Sulphur":0.01}},{"id":"FishBoneMeal","minerals":{"Nitrogen":0.067,"Calcium":0.0001,"Potassium":0.004,"Phosphorous":0.114}}],"tests":{}};
+const SEED = {"minerals":{"Nitrogen":{"symbol":"N","mass":14.007,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Calcium":{"symbol":"Ca","mass":40.078,"ideal":0.68,"minPct":0.6,"maxPct":0.85,"minPPM":750.0,"type":"cation"},"Magnesium":{"symbol":"Mg","mass":24.305,"ideal":0.12,"minPct":0.1,"maxPct":0.2,"minPPM":100.0,"type":"cation"},"Potassium":{"symbol":"K","mass":39.098,"ideal":0.04,"minPct":0.02,"maxPct":0.05,"minPPM":40.0,"type":"cation"},"Sodium":{"symbol":"Na","mass":22.99,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":25.0,"type":"cation"},"Phosphorous":{"symbol":"P","mass":30.974,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":100.0,"type":"anion"},"Sulphur":{"symbol":"S","mass":32.066,"ideal":0.015,"minPct":0.01,"maxPct":0.04,"minPPM":50.0,"type":"anion"},"Boron":{"symbol":"B","mass":10.811,"ideal":0.001,"minPct":-1.0,"maxPct":-1.0,"minPPM":1.0,"type":"trace"},"Iron":{"symbol":"Fe","mass":55.933,"ideal":0.027,"minPct":0.01,"maxPct":0.054,"minPPM":50.0,"type":"trace"},"Manganese":{"symbol":"Mn","mass":54.938,"ideal":0.4166,"minPct":0.33,"maxPct":0.5,"minPPM":50.0,"type":"trace"},"Copper":{"symbol":"Cu","mass":63.546,"ideal":0.5,"minPct":-1.0,"maxPct":-1.0,"minPPM":5.0,"type":"trace"},"Zinc":{"symbol":"Zn","mass":65.39,"ideal":0.1,"minPct":-1.0,"maxPct":-1.0,"minPPM":10.0,"type":"trace"},"Clorine":{"symbol":"Cl","mass":35.453,"ideal":1.5,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Aluminium":{"symbol":"Al","mass":26.982,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Chromium":{"symbol":"Cr","mass":51.996,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Cobalt":{"symbol":"Co","mass":58.933,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Iodine":{"symbol":"I","mass":126.904,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Molybdenum":{"symbol":"Mo","mass":95.95,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Selenium":{"symbol":"Se","mass":78.972,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"trace"},"Tin":{"symbol":"Sn","mass":118.71,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Nickel":{"symbol":"Ni","mass":56.693,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Flourine":{"symbol":"F","mass":18.998,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Carbon":{"symbol":"C","mass":12.011,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Silicon":{"symbol":"Si","mass":28.086,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":25.0,"type":"n/a"},"Oxygen":{"symbol":"O","mass":15.999,"ideal":0.0,"minPct":-1.0,"maxPct":-1.0,"minPPM":0.0,"type":"n/a"}},"compounds":[{"id":"Ironite","minerals":{"Calcium":0.08,"Sulphur":0.05,"Iron":0.2}},{"id":"IronPlus","minerals":{"Magnesium":0.02,"Iron":0.165}},{"id":"EncapIron","minerals":{"Calcium":0.11,"Magnesium":0.02,"Iron":0.165}},{"id":"AgSulphur","minerals":{"Sulphur":0.9}},{"id":"Pot_Sulfate1","minerals":{"Potassium":0.423,"Sulphur":0.175}},{"id":"CalPhos","minerals":{"Calcium":0.2,"Phosphorous":0.088},"noCount":["Calcium"]},{"id":"LimeStone","minerals":{"Calcium":0.4,"Magnesium":0.005}},{"id":"Borax","minerals":{"Sodium":0.1206,"Boron":0.1134}},{"id":"BoricAcid","minerals":{"Boron":0.175}},{"id":"BoneMeal","minerals":{"Calcium":0.12,"Sodium":0.057,"Phosphorous":0.13156}},{"id":"WoodAsh","minerals":{"Calcium":0.14,"Potassium":0.05}},{"id":"Gypsum","minerals":{"Calcium":0.205,"Sulphur":0.17}},{"id":"GreenSand","minerals":{"Potassium":0.0581,"Iron":0.09}},{"id":"DolmiteLime","minerals":{"Calcium":0.22,"Magnesium":0.13}},{"id":"ChickenManure","minerals":{"Potassium":0.01,"Phosphorous":0.0103}},{"id":"Sul-Po-Mag","minerals":{"Magnesium":0.11,"Potassium":0.1826,"Sulphur":0.22}},{"id":"EpsomSalts","minerals":{"Magnesium":0.1,"Sulphur":0.13}},{"id":"RedmondSalt","minerals":{"Calcium":0.055,"Magnesium":0.0009,"Sodium":0.22,"Sulphur":0.002,"Boron":0.0107,"Iron":0.0005,"Molybdenum":0.0008,"Cobalt":0.0008}},{"id":"IronSulphate","minerals":{"Sulphur":0.18,"Iron":0.3}},{"id":"MangSulfate","minerals":{"Sulphur":0.19,"Manganese":0.32}},{"id":"BioMinCopper","minerals":{"Copper":0.04}},{"id":"SodiumMolybdate","minerals":{"Sodium":0.19,"Molybdenum":0.3965}},{"id":"ZincSulphate","minerals":{"Sulphur":0.17,"Zinc":0.35}},{"id":"AxiloMix5","minerals":{"Magnesium":0.198,"Boron":0.005,"Iron":0.04,"Manganese":0.04,"Copper":0.015,"Zinc":0.015}},{"id":"LawnLime","minerals":{"Calcium":0.32,"Magnesium":0.043}},{"id":"DrEarth4-6-3","minerals":{"Nitrogen":0.04,"Calcium":0.075,"Potassium":0.0249,"Phosphorous":0.0264}},{"id":"GardenTone3-4-4","minerals":{"Nitrogen":0.03,"Calcium":0.05,"Magnesium":0.01,"Potassium":0.0332,"Phosphorous":0.0176,"Sulphur":0.02}},{"id":"CitrusTone5-2-6","minerals":{"Nitrogen":0.05,"Calcium":0.02,"Magnesium":0.005,"Potassium":0.0498,"Phosphorous":0.0088,"Sulphur":0.01}},{"id":"TomatoTone3-4-6","minerals":{"Nitrogen":0.03,"Calcium":0.08,"Potassium":0.0498,"Phosphorous":0.0176,"Sulphur":0.03}},{"id":"JobesVeg2-5-3","minerals":{"Nitrogen":0.02,"Calcium":0.07,"Magnesium":0.005,"Potassium":0.0249,"Phosphorous":0.022,"Sulphur":0.01}},{"id":"FishBoneMeal","minerals":{"Nitrogen":0.067,"Calcium":0.0001,"Potassium":0.004,"Phosphorous":0.114}},{"id":"CopperSulfate","minerals":{"Copper":0.25}},{"id":"Solubor","minerals":{"Boron":0.205}}],"tests":{}};
 </script>
 <script>
 const E = SoilEngine, EL = E.ELEMENTS;
@@ -184,6 +219,8 @@ let S = load() || {
 };
 // repair for older saves
 S.custom = S.custom||[];
+function fixSettings(){ S.settings = Object.assign(clone(E.DEFAULTS), S.settings||{}); for(const k of ['cationFloor','satRange','maxPpm','highPh']) S.settings[k]=Object.assign(clone(E.DEFAULTS[k]), S.settings[k]||{}); }
+fixSettings();
 S.ui = Object.assign({tab:'needs',basis:'lim',garden:'G1',sel:['G1','G2'],mixes:{},allowed:{}}, S.ui);
 let COMPS = SEED.compounds;
 function rebuildComps(){ COMPS = SEED.compounds.concat((S.custom||[]).map(c=>({id:c.id,minerals:c.minerals,custom:true,lbPerGal:c.lbPerGal}))); }
@@ -226,19 +263,30 @@ function vNeeds(){
     }).join('')+'</tr>';
   }
   const g=S.ui.garden, a=an[g], row=S.tests[d][g], sz=size(g);
+  const CAT=['Calcium','Magnesium','Potassium','Sodium'];
   let det='';
   for(const el of EL){ const x=a[el]; if(!x) continue;
-    const st = x.limOz===0 ? '<span class="pill">enough</span>' : (x.tecOz===0?'<span class="pill low">below minimum</span>':'<span class="pill warn">needs</span>');
-    det+=`<tr><td>${el}</td><td>${x.found}</td><td>${x.target.toFixed(x.target<5?2:0)}</td><td>${x.floor??'–'}</td><td>${f4(x.tecOz)}</td><td>${f4(x.limOz)}</td><td>${sz? f2(x[bk]*sz/16):'–'}</td><td style="text-align:left">${st}</td></tr>`;
+    let st;
+    if(x.high) st='<span class="pill warn">above max</span>';
+    else if(x.limOz>0 && x.tecOz===0) st='<span class="pill low">below minimum</span>';
+    else if(x.limOz>0) st='<span class="pill warn">needs</span>';
+    else st='<span class="pill">enough</span>';
+    if(x.low && !x.high && CAT.includes(el)) st+=' <span class="pill low">below range</span>';
+    const rng=x.satRange?`${x.satPct.toFixed(1)}% <span class="muted tiny">(${x.satRange[0]}–${x.satRange[1]})</span>`:'–';
+    const cap=['Molybdenum','Selenium'].includes(el)?' <span class="pill low" title="The book warns Mo and Se are toxic above about 1–2 ppm">caution</span>':'';
+    det+=`<tr><td>${el}${cap}</td><td>${x.found}</td><td>${x.target.toFixed(x.target<5?2:0)}</td><td>${x.floor??'–'}</td><td>${x.maxPpm??'–'}</td><td>${rng}</td><td>${f4(x.tecOz)}</td><td>${f4(x.limOz)}</td><td>${sz? f2(x[bk]*sz/16):'–'}</td><td style="text-align:left">${st}</td></tr>`;
   }
+  const nts=E.notes(row,a,S.settings), nclass={warn:'warnbox',info:'okbox',tip:'okbox'};
   $('#main').innerHTML=`
   <div class="card"><div class="row"><div><h2>What each garden needs</h2><p class="sub" style="margin:0">Ounces per sq-ft to add, from the soil test.</p></div>
     <div class="right row"><span class="muted">Test date</span>${dateSelect()}<span class="muted">Show</span>${basisSeg()}</div></div></div>
   <div class="card scroll"><table><tr><th>Mineral</th>${gs.map(g=>`<th>${esc(g)}</th>`).join('')}</tr>${rows}</table>
-    <p class="tiny muted">Shading = how far below target. <b>tecOz</b> aims at the ideal level for the soil's TEC; <b>limOz</b> is the larger of that and the minimum-ppm floor. Cations (Ca, Mg, K, Na) have no extra floor.</p></div>
+    <p class="tiny muted">Shading = how far below target. <b>tecOz</b> aims at the Ideal Soil target for the soil's TEC; <b>limOz</b> is the larger of that and the book's minimum-ppm floor (Ca 750, Mg 100, K 100, Na 25, P 100, S 50, B 1, Fe 50, Mn 25, Cu 5, Zn 10).</p></div>
   <div class="card"><div class="row"><h2>Detail</h2><select onchange="S.ui.garden=this.value;save();render()">${gs.map(x=>`<option ${x===g?'selected':''}>${esc(x)}</option>`).join('')}</select>
     <span class="muted">TEC ${row.TEC} · pH ${row.PH??'–'} · OM ${row.SOMpct??'–'}% · ${sz?sz.toLocaleString()+' sq-ft':'set size in Mix tab'}</span></div>
-    <div class="scroll"><table><tr><th>Mineral</th><th>Found ppm</th><th>Target ppm</th><th>Floor ppm</th><th>tecOz</th><th>limOz</th><th>Lbs for garden (${S.ui.basis==='tec'?'tec':'lim'})</th><th></th></tr>${det}</table></div></div>
+    ${nts.map(n=>`<div class="${nclass[n.kind]}">${n.kind==='tip'?'<b>Book tip:</b> ':''}${esc(n.text)}</div>`).join('')}
+    <div class="scroll"><table><tr><th>Mineral</th><th>Found ppm</th><th>Target ppm</th><th>Floor</th><th>Max</th><th>% of TEC (range)</th><th>tecOz</th><th>limOz</th><th>Lbs for garden</th><th></th></tr>${det}</table></div>
+    <p class="tiny muted">Not covered: nitrogen (the book aims for roughly 40–50 ppm available N) and chlorine (minimum 25 ppm, 1–2× sodium) — most soil labs don't report them. Silicon and aluminium have no book targets.</p></div>
   <div class="row noprint"><button class="btn" onclick="setTab('mix')">Next: build a mix →</button></div>`;
 }
 
@@ -273,8 +321,8 @@ function vMix(){
     <div class="scroll"><table><tr><th>Product</th><th title='Tick what you have on hand / are willing to use'>Have</th><th>Lbs</th><th style="text-align:left">Contains</th></tr>${COMPS.map(c=>`<tr><td>${esc(c.id)}${c.custom?` <span class="pill">yours</span> <a href="#" class="tiny" onclick="delProduct('${esc(c.id).replace(/'/g,'')}');return false" title="remove">×</a>`:''}</td>
       <td><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="S.ui.allowed['${c.id}']=this.checked;save()"></td>
       <td><input type="number" min="0" step="0.05" value="${mix[c.id]||''}" placeholder="0" oninput="setLbs('${c.id}',this.value)"></td>
-      <td class="tiny muted" style="text-align:left">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%`).join(', ')}</td></tr>`).join('')}</table></div></div>
-   <div><div class="card" id="gap"></div><div class="card" id="cover"></div><div id="limits"></div></div>
+      <td class="tiny muted" style="text-align:left">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</td></tr>`).join('')}</table></div></div>
+   <div><div class="card" id="gap"></div><div class="card" id="cover"></div><div class="card" id="proj"></div><div id="limits"></div></div>
   </div>
   <div class="row noprint"><button class="btn" onclick="setTab('plan')">Next: recipe →</button></div>`;
   renderGap();
@@ -295,9 +343,9 @@ function renderGap(){
   <table><tr><th>Mineral</th><th>Need</th><th>Supplied</th><th style="text-align:left;min-width:120px">Coverage</th></tr>${els.map(e=>{
     const n=need[e]||0,s=sup[e]||0,pct=n? s/n*100 : (s>0?999:0);
     const over=n&&pct>115||(!n&&s>0);
-    return `<tr><td>${e} <span class="muted tiny">${E.SYMBOL[e]||''}</span></td><td>${f2(n)}</td><td>${f2(s)}</td><td style="text-align:left"><div class="bar"><i class="${over?'over':''}" style="width:${Math.min(100,n?pct:100)}%"></i></div><span class="tiny ${over?'':'muted'}" style="${over?'color:var(--warn)':''}">${n? Math.round(pct)+'%' : 'not needed'}</span></td></tr>`;
+    return `<tr><td>${e} <span class="muted tiny">${E.SYMBOL[e]||''}</span>${['Molybdenum','Selenium'].includes(e)?' <span class="pill low" title="Toxic above about 1–2 ppm (The Ideal Soil)">caution</span>':''}</td><td>${f2(n)}</td><td>${f2(s)}</td><td style="text-align:left"><div class="bar"><i class="${over?'over':''}" style="width:${Math.min(100,n?pct:100)}%"></i></div><span class="tiny ${over?'':'muted'}" style="${over?'color:var(--warn)':''}">${n? Math.round(pct)+'%' : 'not needed'}</span></td></tr>`;
   }).join('')||'<tr><td colspan="4" class="muted">Nothing needed for this selection 🎉</td></tr>'}</table>`;
-  renderCover(need);
+  renderCover(need); renderProjected(sup);
   const lim=E.limitCheck(sup,area,S.settings);
   $('#limits').innerHTML = lim.length? `<div class="card"><h2>Yearly limits <span class="muted tiny">(lbs of element per acre)</span></h2>`+lim.map(l=>
     `<div class="${l.over?'warnbox':'okbox'}"><b>${l.element}</b>: ${l.perAcre.toFixed(2)} of ${l.max} lb/acre max ${l.over?`— <b>over the limit</b>. For these ${area.toLocaleString()} sq-ft keep ≤ ${l.maxLbsForArea.toFixed(3)} lb of ${l.element}.`:'— OK'}</div>`).join('')+`</div>` : '';
@@ -315,6 +363,7 @@ function vPlan(){
     ${bad.length?`<div class="warnbox">⚠ Over the yearly limit: ${bad.map(b=>b.element).join(', ')}. Adjust on the Mix tab.</div>`:''}
     ${items.length? `<h3>Total to buy / spread</h3><table><tr><th>Product</th><th>Lbs</th><th>Oz</th><th>Oz per sq-ft</th></tr>${items.map(c=>`<tr><td>${esc(c.id)}</td><td>${mix[c.id].toFixed(2)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td><td>${(mix[c.id]*16).toFixed(1)}</td><td>${(mix[c.id]*16/area).toFixed(4)}</td></tr>`).join('')}</table>
     <h3>Split by garden (same rate per sq-ft)</h3><div class="scroll"><table><tr><th>Product</th>${S.ui.sel.map(g=>`<th>${esc(g)} <span class="muted tiny">${size(g)} sq-ft</span></th>`).join('')}</tr>${items.map(c=>`<tr><td>${esc(c.id)}</td>${S.ui.sel.map(g=>{const l=mix[c.id]*size(g)/area;return `<td>${l.toFixed(2)} lb <span class="muted tiny">(${(l*16).toFixed(1)} oz)</span></td>`}).join('')}</tr>`).join('')}</table></div>
+    <h3>Notes from The Ideal Soil</h3><ul class="tiny" style="margin:4px 0 10px 18px;padding:0">${planTips(items).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td>${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>`
     : `<p class="muted">No products in the mix yet. Go to the Mix tab and enter pounds or press “Suggest a mix”.</p>`}</div>`;
 }
@@ -362,24 +411,39 @@ function exportAll(){ download('soil-planner-backup.json',JSON.stringify(S,null,
 function importBackup(f){ if(!f) return; f.text().then(t=>{ try{ S=JSON.parse(t); save(); render(); }catch(e){ alert('Not a valid backup file'); } }); }
 
 /* ---------------- SETTINGS ---------------- */
+const SOURCE={Calcium:'Ideal Soil chart: 68% of TEC (60–85%), 200 ppm per meq',Magnesium:'Chart: 12% (10–20%), 120 ppm per meq',Potassium:'Chart: 4% (2–5%), 390 ppm per meq',Sodium:'Chart: 1.5% (1–4%), 230 ppm per meq',
+ Sulphur:'Chart: half of ideal K (up to 300 ppm)',Phosphorous:'Chart: equal to ideal K',Boron:'Chart: 1/1000 of ideal Ca (max 4 ppm)',Iron:'Chart: half of ideal K',Manganese:'Chart: half of Fe (≈50 max)',Copper:'Chart: half of Zn (up to 25)',Zinc:'Chart: 1/10 of P (up to 50)',
+ Cobalt:'Book: 0.5–2 ppm of trace elements is "enough" — no specific figure',Molybdenum:'Same; toxic above ~1–2 ppm',Selenium:'Same; toxic above ~1–2 ppm'};
 function vSettings(){
   const st=S.settings, rows=EL.map(el=>{
     const isCat=st.idealPct[el]!==undefined, isFix=st.fixedPpm[el]!==undefined;
     const rule=isCat?`${(st.idealPct[el]*100).toFixed(1)}% of TEC × ${st.ppmPerMeq[el]} ppm/meq`: isFix?'fixed ppm':'ppm per TEC unit';
     const val=isCat?st.idealPct[el]:isFix?st.fixedPpm[el]:st.ppmPerTec[el];
-    return `<tr><td>${el}</td><td style="text-align:left" class="muted tiny">${rule}</td>
+    const flr=isCat?st.cationFloor[el]:st.minPpm[el];
+    return `<tr><td>${el}</td><td style="text-align:left" class="muted tiny">${rule}<br>${SOURCE[el]||''}</td>
      <td><input type="number" step="any" value="${val}" onchange="setS('${el}','rule',this.value)"></td>
-     <td>${isCat?'<span class="zero">–</span>':`<input type="number" step="any" value="${st.minPpm[el]??''}" onchange="setS('${el}','floor',this.value)">`}</td>
+     <td><input type="number" step="any" value="${flr??''}" onchange="setS('${el}','floor',this.value)"></td>
+     <td><input type="number" step="any" value="${st.maxPpm[el]??''}" onchange="setS('${el}','maxppm',this.value)"></td>
      <td><input type="number" step="any" value="${st.maxLbsPerAcre[el]??''}" onchange="setS('${el}','max',this.value)"></td></tr>`;}).join('');
-  $('#main').innerHTML=`<div class="card"><div class="row"><div><h2>Settings</h2><p class="sub" style="margin:0">These values reproduce your 2023-05-11 GardenRecs file exactly. Change them only if your method changes.</p></div>
-    <button class="btn alt right" onclick="if(confirm('Reset all settings to your file values?')){S.settings=clone(E.DEFAULTS);save();render()}">Reset</button></div>
-    <table><tr><th>Mineral</th><th style="text-align:left">Target rule</th><th>Value</th><th>Floor ppm (limOz)</th><th>Max lb element / acre / yr</th></tr>${rows}</table>
+  $('#main').innerHTML=`<div class="card"><div class="row"><div><h2>Settings</h2><p class="sub" style="margin:0">Targets follow <i>The Ideal Soil</i> (Michael Astera) on a Mehlich-3 basis. Change them only if your method changes.</p></div>
+    <button class="btn alt right" onclick="if(confirm('Reset all settings to the book values?')){S.settings=clone(E.DEFAULTS);save();render()}">Reset</button></div>
+    <div style="margin:8px 0"><label><input type="checkbox" ${st.useCationFloors?'checked':''} onchange="S.settings.useCationFloors=this.checked;save()"> Apply the book's minimum ppm for Ca, Mg, K and Na (matters most when TEC is under 7)</label><br>
+    <label><input type="checkbox" ${st.highPh.use?'checked':''} onchange="S.settings.highPh.use=this.checked;save()"> Use the book's high-pH targets (Ca 83.5%, Mg 10%, K 5%, Na 1.5%) when pH is above <input type="number" step="0.1" value="${st.highPh.threshold}" style="width:60px" onchange="S.settings.highPh.threshold=+this.value;save()"> <span class="muted tiny">(the book wants an ammonium-acetate CEC for these soils)</span></label></div>
+    <div class="scroll"><table><tr><th>Mineral</th><th style="text-align:left">Target rule and source</th><th>Value</th><th>Floor ppm</th><th>Max ppm</th><th>Max lb element / acre / yr</th></tr>${rows}</table></div>
     <div class="row" style="margin-top:12px"><label>Sq-ft per acre <input type="number" value="${st.sqftPerAcre}" onchange="S.settings.sqftPerAcre=+this.value;save()"></label>
-    <label>Lbs/acre per ppm <input type="number" step="any" value="${st.lbsPerAcrePerPpm}" onchange="S.settings.lbsPerAcrePerPpm=+this.value;save()"></label></div></div>`;
+    <label>Lbs/acre per ppm <input type="number" step="any" value="${st.lbsPerAcrePerPpm}" onchange="S.settings.lbsPerAcrePerPpm=+this.value;save()"></label></div>
+    <p class="tiny muted">The book treats the top 6–7 inches of an acre as 2,000,000 lb, so 1 ppm = 2 lb/acre. The yearly lb/acre limits come from your own spreadsheet, not the book; the book cites about 7 lb/acre of zinc a year as one regulatory limit, and 1–2 ppm of boron a year.</p></div>
+  <div class="card"><h2>Product data corrected against the book</h2><ul class="tiny" style="margin:4px 0 0 18px;padding:0">
+   <li>Potassium sulfate: 0-0-51 means 51% K₂O, which is 42.3% potassium (was 50%). A duplicate entry listing 83% K was removed.</li>
+   <li>Dr. Earth, Garden-tone, Citrus-tone, Tomato-tone and Jobes: P and K were the label's oxide numbers; now converted (P₂O₅ × 0.44, K₂O × 0.83).</li>
+   <li>Lawn lime: magnesium 43% → 4.3% (matches your old spreadsheet). Zinc sulfate: 35% Zn, 17% S (monohydrate).</li>
+   <li>CalPhos: calcium no longer counts toward your calcium need, as the book advises. Copper sulfate (25% Cu) and Solubor (20.5% B) added.</li>
+   <li>Still worth checking against the bag: FishBoneMeal, ChickenManure, AxiloMix5, Gypsum (book ~22% Ca, 16% S) and Borax (book ~9% B; pure decahydrate is 11.3%).</li></ul></div>`;
 }
 function setS(el,what,v){ const n=v===''?undefined:parseFloat(v), st=S.settings;
   if(what==='rule'){ if(st.idealPct[el]!==undefined) st.idealPct[el]=n; else if(st.fixedPpm[el]!==undefined) st.fixedPpm[el]=n; else st.ppmPerTec[el]=n; }
-  else if(what==='floor'){ if(n===undefined) delete st.minPpm[el]; else st.minPpm[el]=n; }
+  else if(what==='floor'){ const tbl=st.idealPct[el]!==undefined?st.cationFloor:st.minPpm; if(n===undefined) delete tbl[el]; else tbl[el]=n; }
+  else if(what==='maxppm'){ if(n===undefined) delete st.maxPpm[el]; else st.maxPpm[el]=n; }
   else { if(n===undefined) delete st.maxLbsPerAcre[el]; else st.maxLbsPerAcre[el]=n; }
   save(); }
 
@@ -465,7 +529,7 @@ const payload=()=>({custom:S.custom,tests:S.tests,sizes:S.sizes,settings:S.setti
 function schedulePush(){ if(!CL.db||!synced) return; clearTimeout(pushT); pushT=setTimeout(async()=>{ try{ lastT=Date.now(); await CL.db.collection('planner').doc('state').set({json:JSON.stringify(payload()),t:lastT}); }catch(e){} },800); }
 function startSync(){
   const ref=CL.db.collection('planner').doc('state');
-  const apply=(d)=>{ try{ const p=JSON.parse(d.json); S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} };
+  const apply=(d)=>{ try{ const p=JSON.parse(d.json); S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; fixSettings(); S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} };
   ref.onSnapshot(snap=>{
     const ex=typeof snap.exists==='function'?snap.exists():snap.exists, d=ex?(typeof snap.data==='function'?snap.data():snap.data):null;
     if(d&&d.json){ if(d.t!==lastT) apply(d); synced=true; }
@@ -473,6 +537,32 @@ function startSync(){
   },()=>{});
 }
 initCaps();
+
+const PRODUCT_TIPS={AgSulphur:'Ag sulfur only turns into sulfate when the soil is warmer than about 55°F (13°C).',CalPhos:'Colloidal clay phosphate releases phosphorus slowly, and the book does not count its calcium toward your calcium need.',
+ Borax:'Boron leaches in wet soil and can harm germinating seeds; the book keeps boron to about 1–2 ppm a year.',Solubor:'Boron leaches in wet soil and can harm germinating seeds; the book keeps boron to about 1–2 ppm a year.',
+ BioMinCopper:'Keep copper away from water: free copper harms soil fungi and aquatic life.',CopperSulfate:'Keep copper away from water, and do not mix it in iron or galvanized containers.',
+ SodiumMolybdate:'Molybdenum and selenium are toxic above about 1–2 ppm; measure these carefully.',MangSulfate:'Too much manganese is a problem when copper or zinc is low.',ZincSulphate:'Zinc is often overused, and high phosphorus can tie it up.',
+ EpsomSalts:'Epsom salts are the book\'s fix when calcium is high and magnesium is low.',Gypsum:'Gypsum is the book\'s fix when magnesium is high and calcium is low, and it helps move sodium out.'};
+function planTips(items){
+  const t=items.map(c=>PRODUCT_TIPS[c.id]).filter(Boolean);
+  return t.concat(['Test in spring and fall. Apply calcium and magnesium in the fall so winter rain moves them in.','Mix products evenly and work them into the top 4–6 inches. Wait about a week before transplanting, and do not seed straight into freshly amended soil.','Be conservative: it is easier to add more later than to remove an excess. Treating half the area first, or leaving a control plot, shows what worked.','Amounts within about 10–15% of the target are fine; there is no need to chase exact numbers.']);
+}
+
+/* ---------------- BOOK CHECKS: projected soil levels ---------------- */
+function renderProjected(sup){
+  const el=$('#proj'); if(!el) return;
+  const d=S.ui.date, gs=S.ui.sel.filter(g=>S.tests[d]&&S.tests[d][g]), area=selArea();
+  if(!area||!gs.length){ el.innerHTML=''; return; }
+  const rows=[];
+  for(const e of EL){
+    const s=sup[e]||0; if(!(s>0.0005)) continue;
+    let fsum=0,tsum=0; gs.forEach(g=>{ const a=E.analyze(S.tests[d][g],S.settings)[e]; if(a){ fsum+=a.found*size(g); tsum+=a.target*size(g);} });
+    const found=fsum/area, target=tsum/area, add=s*S.settings.sqftPerAcre/area/S.settings.lbsPerAcrePerPpm, after=found+add;
+    const mx=S.settings.maxPpm[e], over=mx!==undefined&&after>mx, beyond=after>target*1.15&&target>0&&!over;
+    rows.push(`<tr><td>${e}</td><td>${found.toFixed(found<10?2:0)}</td><td>+${add.toFixed(add<10?2:0)}</td><td><b>${after.toFixed(after<10?2:0)}</b></td><td>${target.toFixed(target<10?2:0)}</td><td>${mx??'–'}</td><td style="text-align:left">${over?'<span class="pill warn">over book max</span>':beyond?'<span class="pill low">above target</span>':'<span class="pill">ok</span>'}</td></tr>`);
+  }
+  el.innerHTML=rows.length?`<h2>Soil after this mix <span class="muted tiny">(ppm, 1 ppm = 2 lb/acre)</span></h2><table><tr><th>Mineral</th><th>Now</th><th>Adds</th><th>After</th><th>Target</th><th>Max</th><th></th></tr>${rows.join('')}</table><p class="tiny muted">Averaged over the selected gardens. Does not allow for leaching or uptake.</p>`:'';
+}
 
 /* ---------------- PRODUCT LABELS + MISSING-MINERAL CHECK ---------------- */
 const ELMAP={N:'Nitrogen',P:'Phosphorous',K:'Potassium',Ca:'Calcium',Mg:'Magnesium',S:'Sulphur',B:'Boron',Fe:'Iron',Mn:'Manganese',Cu:'Copper',Zn:'Zinc',Mo:'Molybdenum',Co:'Cobalt',Se:'Selenium',Na:'Sodium',Si:'Silicon'};
