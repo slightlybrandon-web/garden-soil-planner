@@ -42,6 +42,12 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 11px;margin:0 6px 6px 0;background:#fff;cursor:pointer}
 .chip.on{background:var(--green2);border-color:var(--green)}
 .two{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;align-items:start}.stick{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}.balgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}.satrow{display:flex;align-items:center;gap:8px;margin:5px 0}.satbar{position:relative;flex:1;height:12px;background:#e6edf7;border-radius:6px}.satbar .band{position:absolute;top:0;height:100%;background:#b9d3f2;border-left:2px solid #14407a;border-right:2px solid #14407a;box-sizing:border-box}.satbar i{position:absolute;left:0;top:3px;height:6px;border-radius:3px;background:var(--ok)}.satbar i.low{background:#0a0f1a}.satbar i.over{background:var(--warn);box-shadow:0 0 0 1px #0a0f1a}.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.optcard{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}.optcard h3{margin:0 0 2px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}.optcard table td,.optcard table th{padding:4px 6px}.why{font-size:12px;color:#000;text-align:left} @media(max-width:900px){.two{grid-template-columns:1fr}.stick{position:static;max-height:none}}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 0 2px}
+.pick button{display:flex;align-items:center;gap:12px;text-align:left;padding:16px 18px;border:2px solid #b9c8dc;border-radius:12px;background:#fff;color:var(--green);font:inherit;cursor:pointer}
+.pick button:hover{border-color:var(--green)}
+.pick button.on{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 3px 10px rgba(16,40,80,.25)}
+.pick .pi{font-size:28px}.pick b{display:block;font-size:18px}.pick small{display:block;opacity:.8;font-size:13px;margin-top:2px}
+@media(max-width:560px){.pick{grid-template-columns:1fr}}
 .seg{display:inline-flex;border:1px solid var(--green);border-radius:8px;overflow:hidden}
 .seg button{border:0;background:#fff;color:var(--green);padding:6px 12px;font:inherit;cursor:pointer}.seg button.on{background:var(--green);color:#fff}
 .hero{background:linear-gradient(135deg,#0a1628,#14407a);color:#fff;border-radius:14px;padding:26px 26px 22px;margin-bottom:18px}
@@ -802,7 +808,8 @@ function vTests(){
   const hist=(anyBed?`<tr><th rowspan="2">Date</th>${Object.entries(gg).map(([g,ks])=>`<th colspan="${ks.length}" class="gh" style="text-align:center">${esc(gLab(g))}</th>`).join('')}</tr><tr>${order.map(k=>`<th style="text-align:center">${esc(nameParts(k).b?bLab(nameParts(k).b):'–')}</th>`).join('')}</tr>`:`<tr><th>Date</th>${order.map(g=>`<th>${esc(gLab(g))}</th>`).join('')}</tr>`)+dates().map(dt=>`<tr><td>${fmtDate(dt)}</td>${order.map(g=>{const v=S.tests[dt][g]?.[histEl];return `<td>${v===undefined?'<span class="zero">·</span>':v}</td>`}).join('')}</tr>`).join('');
   const flash=FLASH; FLASH='';
   const mode=EDIT?'submit':(S.ui.testMode||(dates().length?'view':'submit'));
-  const toggle=`<div class="seg noprint"><button class="${mode==='view'?'on':''}" onclick="setMode('view')">📋 View my tests${dates().length?' ('+dates().length+')':''}</button><button class="${mode==='submit'?'on':''}" onclick="setMode('submit')">➕ Submit a test</button></div>`;
+  const nT=dates().length;
+  const toggle=`<div class="pick noprint"><button class="${mode==='view'?'on':''}" onclick="setMode('view')"><span class="pi">📋</span><span><b>View my tests</b><small>${nT?nT+' test date'+(nT>1?'s':'')+' on file · see the report':'Nothing saved yet'}</small></span></button><button class="${mode==='submit'?'on':''}" onclick="setMode('submit')"><span class="pi">➕</span><span><b>Submit a test</b><small>Scan, import or type in a lab report</small></span></button></div>`;
   const tools=mode==='submit'
     ?`<button class="btn alt" onclick="downloadTemplate()" title="A spreadsheet (CSV) with the exact columns the app reads">Download template</button><label class="btn alt" style="cursor:pointer">Import CSV / XML<input type="file" accept=".csv,.xml" hidden onchange="importAny(this.files[0]);this.value=''"></label>`
     :`<button class="btn alt" onclick="exportAll()">Export backup</button><label class="btn alt" style="cursor:pointer">Restore backup<input type="file" accept=".json" hidden onchange="importBackup(this.files[0])"></label>`;
@@ -822,8 +829,9 @@ function vTests(){
     <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>`;
   $('#main').innerHTML=`
   <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${mode==='view'?(dates().length?dates().length+' test date'+(dates().length>1?'s':'')+' on file. Pick a date to see its report.':'No tests yet. Switch to Submit a test to add one.'):'Add a test by scanning your lab report, importing a file, or typing the values in.'}</p></div>
-    <div class="right row noprint">${toggle}</div></div>
-    <div class="row noprint" style="margin-top:8px">${tools}</div></div>
+    </div>
+    <div style="margin-top:12px">${toggle}</div>
+    <div class="row noprint" style="margin-top:12px">${tools}</div></div>
   ${flash&&mode==='view'?`<div class="okbox"><b>✓ ${esc(flash)}</b></div>`:''}
   ${mode==='view'?viewHtml:submitHtml}`;
 }
