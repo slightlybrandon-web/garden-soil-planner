@@ -66,6 +66,7 @@ table.needs td,table.needs th{text-align:center}table.needs td:first-child,table
 .gl{display:grid;grid-template-columns:110px 1fr 56px;gap:4px 10px;align-items:center;margin:2px 0}.gtrack{position:relative;height:14px;background:#e3ebf6;border-radius:7px}.gfill{position:absolute;left:0;top:0;height:100%;border-radius:7px}.gmark{position:absolute;top:-3px;width:2px;height:20px;background:#0a0f1a}.gdot{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;border:2px solid #0a0f1a}.gband{position:absolute;top:0;height:100%;background:rgba(31,111,209,.28)}.glab{font-size:13px;color:#000}.gval{font-size:12px;color:#000;text-align:right;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#000;margin:6px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{border:1px solid #9fb0c8;padding:5px 8px}table.rep td{text-align:right;color:#000}table.rep td.rl{text-align:left;font-weight:500;background:#f5f8fc}table.rep td.ru{text-align:left;font-size:12px;color:#000;background:#f5f8fc}table.rep th.rs{width:34px;padding:0;background:#dfe8f5;text-transform:uppercase;font-size:11px;color:#0a0f1a}table.rep th.rs span,table.rep th.rs{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}table.rep th.sh{background:#0a1628;color:#fff;text-align:center;font-size:14px;text-transform:none}table.rep th.sh.sub{background:#14407a}table.rep td.out{background:#fff4b8;font-weight:700}table.rep b.short{background:#ffd400;padding:1px 6px;border-radius:5px;color:#000}
 .glt th{text-align:left}.gbar{height:12px;background:#e3ebf6;border-radius:6px;overflow:hidden}.gbar i{display:block;height:100%;background:var(--ok);border-radius:6px}.gtxt{font-size:12px;color:#000}.glo{margin:4px 0 0 20px;padding:0;color:#000}.glo li{margin:3px 0}
+.btn.big{font-size:18px;padding:14px 22px;min-height:52px}.herobtn{background:#fff;color:#0a1628;border-color:#fff}.learnbox summary{font-size:16px}
 .hsteps{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hsteps span{background:rgba(255,255,255,.14);border-radius:99px;padding:6px 14px;font-size:14px}.hsteps b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffd400;color:#0a0f1a;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
 .learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
@@ -102,7 +103,7 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
 <header><h1 style="cursor:pointer" onclick="setTab('home')">🌱 Garden Soil Planner</h1>
 <button id="acctchip" class="chip noprint" onclick="S.ui.tab==='home'?document.getElementById('acctcard')&&document.getElementById('acctcard').scrollIntoView({behavior:'smooth'}):setTab('home')" style="display:none"></button><nav id="nav"></nav></header>
 <main id="main"></main>
-<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser. · <a href="#" onclick="setTab('privacy');return false">Privacy policy</a></footer>
+<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser unless you sign in to an account. · <a href="#" onclick="setTab('privacy');return false">Privacy policy</a></footer>
 
 <script>// Soil recommendation engine. Pure functions, no DOM. Used by the app and by test.js.
 (function (root) {
@@ -297,7 +298,7 @@ function render(){
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or upload a PDF or photo of the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({privacy:vPrivacy,home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
-  if(['home','settings'].includes(S.ui.tab)&&typeof acctCard==='function'){ const ac=acctCard(); if(ac) $('#main').insertAdjacentHTML('afterbegin',ac); }
+  if((S.ui.tab==='settings'||(S.ui.tab==='home'&&!(typeof ACCT!=='undefined'&&ACCT)))&&typeof acctCard==='function'){ const ac=acctCard(); if(ac){ const hero=$('#main .hero'); if(S.ui.tab==='home'&&hero) hero.insertAdjacentHTML('afterend',ac); else $('#main').insertAdjacentHTML('afterbegin',ac); } }
   if(typeof acctChip==='function') acctChip();
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -351,7 +352,7 @@ const basisSeg = () => `<span class="seg"><button class="${S.ui.basis==='tec'?'o
 /* ---------------- HOME ---------------- */
 const EXAMPLE={date:'20250401',rows:{'1 / A':{TEC:8.2,PH:6.5,SOMpct:3.8,Sulphur:12,Phosphorous:95,Calcium:1180,Magnesium:140,Potassium:62,Sodium:20,Boron:0.4,Iron:38,Manganese:14,Copper:1.1,Zinc:6.2,Aluminium:420,Cobalt:0.03,Molybdenum:0.05,Selenium:0.1},
   '1 / B':{TEC:5.4,PH:6.1,SOMpct:2.6,Sulphur:9,Phosphorous:48,Calcium:640,Magnesium:78,Potassium:34,Sodium:14,Boron:0.3,Iron:24,Manganese:6,Copper:0.7,Zinc:3.1,Aluminium:300,Cobalt:0.02,Molybdenum:0.03,Selenium:0.08}}};
-function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['1 / A']=S.sizes['1 / A']||400; S.sizes['1 / B']=S.sizes['1 / B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['1 / A','1 / B']; S.ui.garden='1 / A'; save(); setTab('needs'); }
+function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['1 / A']=S.sizes['1 / A']||400; S.sizes['1 / B']=S.sizes['1 / B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['1 / A','1 / B']; S.ui.garden='1 / A'; S.ui.testMode='view'; save(); setTab('needs'); }
 
 /* ---------- Home "at a glance" charts ---------- */
 function glanceCharts(d,gs){
@@ -410,6 +411,7 @@ function vPrivacy(){
   <p>If this policy changes, the date above will change. Questions or requests: open an issue at <a href="https://github.com/slightlybrandon-web/garden-soil-planner/issues" target="_blank" rel="noopener">github.com/slightlybrandon-web/garden-soil-planner</a>.</p>
   <p class="tiny muted">Garden Soil Planner gives general guidance based on the book <i>The Ideal Soil</i>. It is not professional agronomic advice; check amounts against your lab report and local rules.</p></div>`;
 }
+function startTest(){ S.ui.testMode='submit'; setTab('tests'); }
 function vHome(){
   const ds=dates(), has=ds.length, d=S.ui.date;
   let summary='';
@@ -428,32 +430,18 @@ function vHome(){
   }
   $('#main').innerHTML=`
   <div class="hero">${has
-    ?`<h2>Welcome back 🌱</h2><p>Here's where your soil stands today. Add a new test whenever you get results and watch how it changes.</p>`
+    ?`<h2>Welcome back 🌱</h2><p>Here's where your soil stands today. Add a new test whenever you get results and watch how it changes.</p><div style="margin-top:12px"><button class="btn herobtn" onclick="startTest()">➕ Add a new test</button></div>`
     :`<h2>Welcome! Let's find out what your soil is missing 🌱</h2><p>Bring a soil test and in a few minutes you'll know which minerals are short, what to buy and how much to spread. No experience needed, and every term is explained when you hover over it.</p>
       <div class="hsteps"><span><b>1</b> Add your lab report</span><span><b>2</b> See what's missing</span><span><b>3</b> Get your shopping list</span></div>`}</div>
-  <h2 style="margin:4px 0">${has?'What would you like to do?':'Choose how to start'}</h2>
-  <div class="opts">
-    <label class="opt"><span class="ic">📷</span><b>Upload a lab report</b><span class="d">Upload a PDF or photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*,application/pdf,.pdf" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
-    <button class="opt" onclick="S.ui.testMode='submit';setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
-    <label class="opt"><span class="ic">📄</span><b>Import a file</b><span class="d">Load our spreadsheet template (.csv), a soiltest.xml, or a backup.</span><input type="file" accept=".xml,.json,.csv" hidden onchange="importAny(this.files[0]);this.value=''"></label>
-    <button class="opt" onclick="loadExample()"><span class="ic">🧪</span><b>Try it with example data</b><span class="d">Two sample garden beds, so you can look around first. Delete them any time.</span></button>
-    <label class="opt"><span class="ic">🏷️</span><b>Scan a product label</b><span class="d">Photograph a fertilizer bag or bottle to add it to your products.</span><input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label>
-  </div>
+  ${has?'':`<div class="card startcard"><h2>Ready when you are</h2><p class="sub" style="margin:0 0 12px">Upload a PDF or photo of your lab report, type the numbers in, or import a file. They all start in the same place.</p><button class="btn big" onclick="startTest()">➕ Add your first soil test</button></div>`}
   ${summary}
-  <div class="card" id="scancard" style="display:${(SCAN||PSCAN)?'block':'none'}"><span id="scanmsg" class="muted"></span><div id="review">${reviewHtml()}</div><span id="labelmsg" class="muted tiny"></span><div id="prodreview">${prodReviewHtml()}</div></div>
-  <h2 style="margin:18px 0 4px">New to soil testing? Start here</h2>
-  <p class="sub" style="margin:0 0 8px">Three short reads that make the numbers make sense. Tap one to open it.</p>
+  <details class="card learnbox"><summary style="cursor:pointer;font-weight:650">New to soil testing? Start here</summary><p class="sub" style="margin:8px 0">Three short reads that make the numbers make sense.</p>
   <div class="learn">
     <details><summary>What is TEC, and why does everything depend on it?</summary><p>TEC (total exchange capacity) is how much nutrient your soil can hold on to. Clay soils hold a lot and sandy soils hold little. The book's targets are set as a share of that capacity, so a bed with a bigger TEC needs more of each mineral than one with a smaller TEC.</p></details>
     <details><summary>Why does the balance of calcium, magnesium, potassium and sodium matter?</summary><p>These four share the soil's holding capacity. The Ideal Soil aims for about 68% calcium, 12% magnesium, 4% potassium and 1.5% sodium. Too much of one crowds out the others, which is why the app looks at the shares and not only at each number.</p></details>
     <details><summary>How do ppm turn into ounces for my bed?</summary><p>One ppm in the top six to seven inches of soil works out to about 2 pounds per acre. The app takes the gap between what the lab found and the target, converts it to pounds of the mineral, then to pounds of each product using its label percentages, and scales that to your square footage.</p></details>
   </div>
-  <div class="card"><h2>How it works</h2><div class="steps" style="margin-top:8px">
-    <div class="step"><i>1</i><b>Add a soil test</b><div class="tiny muted">Scan, type or import your lab results (ppm values and TEC).</div></div>
-    <div class="step"><i>2</i><b>See what's needed</b><div class="tiny muted">Each garden's shortfalls in oz per sq-ft, against the book's targets.</div></div>
-    <div class="step"><i>3</i><b>Build a mix</b><div class="tiny muted">Tick the products you have, or press Recommend to see what to buy.</div></div>
-    <div class="step"><i>4</i><b>Get the recipe</b><div class="tiny muted">Pounds per product for each garden, with yearly-limit checks and tips.</div></div></div></div>
-  <p class="tiny muted">Sign in with a free account to keep your data safe and use it on any device. Without an account it stays in this browser only.</p>`;
+  </details>`;
 }
 function importAny(file){ if(!file) return; if(/\.json$/i.test(file.name)) importBackup(file); else if(/\.(csv|txt|tsv)$/i.test(file.name)) importCsv(file); else importXml(file); }
 
@@ -878,7 +866,8 @@ function vTests(){
     <div class="scroll"><table><tr><th>Date</th><th style="text-align:left">Garden</th><th style="text-align:left">Bed</th><th>TEC</th><th>pH</th><th></th></tr>${dates().flatMap(dt=>gardensOf(dt).map(k=>{ const key=dt+'|'+k, pend=PEND===key; return `<tr><td>${fmtDate(dt)}</td><td style="text-align:left">${esc(gLab(nameParts(k).g))}</td><td style="text-align:left">${nameParts(k).b?esc(bLab(nameParts(k).b)):'<span class="muted">–</span>'}</td><td>${S.tests[dt][k].TEC??''}</td><td>${S.tests[dt][k].PH??''}</td><td style="text-align:right;white-space:nowrap">${pend?`<b>Delete this sample?</b> <button class="btn danger" onclick="delSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn alt" onclick="editSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Edit</button> <button class="btn alt" onclick="pend('${dt}|${esc(k).replace(/'/g,"\\'")}')">Delete</button>`}</td></tr>`; })).join('')||'<tr><td colspan="6" class="muted">Nothing saved yet.</td></tr>'}</table></div></div>
     <div class="card scroll"><div class="row"><h2>History</h2><select onchange="S.ui.histEl=this.value;render()">${FIELDS.slice(0,3).concat(EL,['Aluminium','Silicon']).map(f=>`<option ${f===histEl?'selected':''}>${f}</option>`).join('')}</select><span class="muted tiny">ppm per garden over time</span></div><table>${hist}</table></div>
   <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
-  const submitHtml=`  <div class="card" id="scancard"><h2>⬆️ Upload a lab report</h2>
+  const exampleHtml=dates().length?'':`<div class="card noprint" style="background:#eef4fc"><div class="row"><div><b>Just looking around?</b><div class="tiny muted">Load two sample garden beds to see the report, needs and shopping list. Delete them any time.</div></div><span class="right"><button class="btn alt" onclick="loadExample()">🧪 Try example data</button></span></div></div>`;
+  const submitHtml=exampleHtml+`  <div class="card" id="scancard"><h2>⬆️ Upload a lab report</h2>
     <p class="sub">Upload a PDF or a photo of your lab report. Claude reads the values, and you check them against the paper before they're saved. You can also take a photo with your camera.</p>
     <div class="row"><label class="btn" style="cursor:pointer">Upload PDF or photo<input type="file" accept="image/*,application/pdf,.pdf" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
     <div id="review">${reviewHtml()}</div></div>
