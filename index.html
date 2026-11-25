@@ -359,6 +359,7 @@ function render(){
   ({privacy:vPrivacy,home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
   if((S.ui.tab==='settings'||(S.ui.tab==='home'&&!(typeof ACCT!=='undefined'&&ACCT)))&&typeof acctCard==='function'){ const ac=acctCard(); if(ac){ const hero=$('#main .qa')||$('#main .hero'); if(S.ui.tab==='home'&&hero) hero.insertAdjacentHTML('afterend',ac); else $('#main').insertAdjacentHTML('afterbegin',ac); } }
   if(typeof acctChip==='function') acctChip();
+  try{ defTips($('#main')); }catch(e){}
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
 }
@@ -394,6 +395,43 @@ const GLOSS={
  'shopping list':'Products you still need to buy (not ticked “Have”).'
 };
 const GL_RE=new RegExp('(?<![\\w-])('+Object.keys(GLOSS).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\\/-]/g,'\\$&')).join('|')+')(?![\\w])','g');
+/* plain-language definitions for every row label and form field name (matched on the label text) */
+const DEFS=[
+ [/^sample location/,'Which garden and bed this sample came from.'],
+ [/^sample id/,'The sample name printed on the lab sheet (optional).'],
+ [/^lab (number|no)/,'The number the lab gave your sample. Quote it if you contact the lab.'],
+ [/^(sample )?depth/,'How deep the soil was sampled, in inches. The targets assume about 6 inches.'],
+ [/^(total exchange|tec)/,'Total Exchange Capacity (also called CEC), in meq per 100 g: how many nutrient cations the soil can hold. Heavier, richer soil holds more. Every target in this app is scaled from it.'],
+ [/^ph( of soil)?/,'Acidity scale: 7 is neutral, lower is acidic, higher is alkaline. Most vegetables like roughly 6 to 7.'],
+ [/^organic matter/,'Decayed plant and animal material, as a percent of the soil. It holds water and feeds soil life.'],
+ [/^anions/,'Nutrients that carry a negative charge (here sulfur and phosphorus). They are not held on the soil particles the way calcium, magnesium and potassium are.'],
+ [/^(sulfur|sulphur)/,'S: needed for protein and flavor. The target is about half of the ideal potassium.'],
+ [/^(mehlich iii )?phosph/,'P (Mehlich III extraction): drives roots, flowers and energy transfer. The target equals the ideal potassium.'],
+ [/^exchangeable cations/,'Nutrients that carry a positive charge (calcium, magnesium, potassium, sodium). They cling to soil particles and release to plant roots.'],
+ [/^desired value/,'The ppm the Ideal Soil target asks for at your TEC. Calculated here unless the lab figure was entered.'],
+ [/^value found/,'The ppm the lab actually measured in your soil.'],
+ [/^deficit/,'How many ppm short of the desired value. A negative number means that much is needed; blank means you have enough.'],
+ [/^(calcium|magnesium|potassium|sodium) \(/,'Base saturation: the share of the soil\u2019s holding capacity filled by this nutrient. The range in brackets is the lab\u2019s preferred range. Yellow means outside it.'],
+ [/^(calcium|magnesium|potassium|sodium) found/,'The ppm of this nutrient the lab measured.'],
+ [/^base saturation/,'The percent of the soil\u2019s holding capacity (TEC) filled by each nutrient. Balanced percentages matter as much as the totals.'],
+ [/^other bases/,'The part of the holding capacity filled by other positive ions the lab does not list separately. It varies from soil to soil.'],
+ [/^(exchangeable hydrogen|exch\. hydrogen)/,'The share of the holding capacity filled by hydrogen, which is acidity held on the soil particles. It rises as pH falls.'],
+ [/^trace elements/,'Nutrients plants need in small amounts, measured in ppm. More is not better: several are harmful if overapplied.'],
+ [/^other$/,'Extra elements and measurements the lab reports.'],
+ [/^ec\b/,'Electrical conductivity in mmhos/cm: a measure of soluble salts. High values can stress plants.'],
+ [/^p\.p\.m\./,'Parts per million (mg of nutrient per kg of soil).'],
+ [/^measure$/,'The soil measurement being compared.'],
+ [/^change$/,'The second column minus the first. Positive means it went up.'],
+ [/^spread$/,'Highest value minus lowest across the compared columns.'],
+ [/^sample details$/,'Basic facts about the sample.'],
+ [/^cations found/,'Calcium, magnesium, potassium and sodium the lab measured, in ppm.'],
+ [/^anions and trace/,'Sulfur, phosphorus and the trace elements, in ppm.']
+];
+const NUTD={boron:'Boron',iron:'Iron',manganese:'Manganese',copper:'Copper',zinc:'Zinc',aluminum:'Aluminium',aluminium:'Aluminium',cobalt:'Cobalt',molybdenum:'Molybdenum',selenium:'Selenium',silicon:'Silicon',calcium:'Calcium',magnesium:'Magnesium',potassium:'Potassium',sodium:'Sodium'};
+function defFor(txt){ const t=txt.trim().toLowerCase().replace(/\s+/g,' '); if(!t) return ''; for(const [re,d] of DEFS) if(re.test(t)) return d; const w=t.replace(/[^a-z].*$/,''); return NUTD[w]?GLOSS[NUTD[w]]:''; }
+function defTips(root){ if(!root) return;
+  root.querySelectorAll('#reportcard td.rl,#reportcard td.ru,#reportcard th.rs,#cmpcard td.rl,#cmpcard th:not(.sh),#cmpcard th.sh:first-child,#cmpcard th.sh:last-child,#editform label>span,#editform h3').forEach(el=>{
+    if(el.hasAttribute('title')||el.dataset.tip) return; const d=defFor((el.innerText||'').split('\n')[0].replace(/:$/,'')); if(d) el.setAttribute('title',d); }); }
 function glossify(root){
   if(!root) return;
   const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>/^(SCRIPT|STYLE|TEXTAREA|OPTION|SELECT|ABBR|INPUT)$/.test(n.parentNode.nodeName)||n.parentNode.closest('abbr,button,[title]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
@@ -1314,7 +1352,7 @@ if(ACCT) setTimeout(()=>{ if(sbOn()) acctPull(true); },300);
 
 /* ---------------- tap / hover definitions ---------------- */
 (function(){
-  const SEL='abbr,td[title],th[title],span[title],[data-tip]';
+  const SEL='abbr,td[title],th[title],span[title],h3[title],[data-tip]';
   let tip=null, cur=null;
   const hide=()=>{ if(tip){ tip.remove(); tip=null; } cur=null; };
   const text=el=>{ if(el.hasAttribute('title')){ el.dataset.tip=el.getAttribute('title'); el.removeAttribute('title'); } return el.dataset.tip||''; };
@@ -1326,8 +1364,8 @@ if(ACCT) setTimeout(()=>{ if(sbOn()) acctPull(true); },300);
     tip.style.left=x+'px'; tip.style.top=y+'px';
   }
   const canHover=matchMedia('(hover:hover)').matches;
-  document.addEventListener('mouseover',e=>{ if(!canHover) return; const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a,label')) show(el); else if(tip&&!(e.target.closest&&e.target.closest('.tipbubble'))) hide(); });
-  document.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a,label')){ if(cur===el&&tip) hide(); else show(el); } else hide(); });
+  document.addEventListener('mouseover',e=>{ if(!canHover) return; const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a')&&!(el.closest('label')&&!el.matches('span'))) show(el); else if(tip&&!(e.target.closest&&e.target.closest('.tipbubble'))) hide(); });
+  document.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a')&&!(el.closest('label')&&!el.matches('span'))){ if(cur===el&&tip) hide(); else show(el); } else hide(); });
   document.addEventListener('scroll',hide,true); document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
 })();
 initCaps();
