@@ -69,6 +69,31 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
 .learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
 .tiny{font-size:12px} .right{margin-left:auto}
+
+.ti{display:none}.pcon{display:none;color:var(--mute);font-weight:400}
+@media(max-width:760px){
+  body{font-size:16px;padding-bottom:76px}
+  header{padding:10px 14px;gap:0}header h1{font-size:17px}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#0a1628;border-top:1px solid #1d3354;padding:4px 4px calc(4px + env(safe-area-inset-bottom));gap:0;flex-wrap:nowrap;justify-content:space-around}
+  nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;border-radius:10px;font-size:11px;min-height:52px}
+  nav button .ti{display:block;font-size:20px;line-height:1.1}
+  nav button.on{background:#1b3a66;color:#fff}
+  main{padding:12px 10px 20px}
+  .card{padding:14px 13px;border-radius:12px;margin-bottom:12px}
+  .two{grid-template-columns:minmax(0,1fr)}.two>*{min-width:0}.stick{position:static;max-height:none;overflow:visible}
+  .card,.scroll{overflow-x:auto}
+  .btn,button.btn,label.btn{min-height:44px;padding:10px 14px}
+  input,select{font-size:16px;min-height:40px}
+  .grid{grid-template-columns:repeat(2,1fr)}.grid.top{grid-template-columns:1fr 1fr}
+  .opt{display:grid!important;grid-template-columns:40px 1fr;column-gap:10px;align-items:center;padding:12px 14px}
+  .opt .ic{grid-row:1/3;font-size:28px;margin:0}.opt b,.opt span.d{grid-column:2}
+  table.prod .pcon{display:block}table.prod th:nth-child(4),table.prod td:nth-child(4){display:none}
+  td input[type=number]{width:74px}td .seg button{padding:6px 9px}
+  th{font-size:11px;padding-left:4px;padding-right:4px}td{padding:8px 4px}
+  table.rep{font-size:12px}
+  .right{margin-left:0}
+}
+@media print{nav{position:static}}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
 </style>
 </head>
@@ -262,13 +287,14 @@ const gardensOf = d => Object.keys(S.tests[d]||{});
 const size = g => S.sizes[g] || 0;
 const basisKey = () => S.ui.basis==='tec' ? 'tecOz' : 'limOz';
 
+const TABICON={home:'🏠',tests:'🧪',needs:'📊',mix:'🧮',plan:'📋',settings:'⚙️'};
 function setTab(t){ S.ui.tab=t; save(); render(); }
 function render(){
   if(S.ui.tab==='report') S.ui.tab='tests';
   const tabs=[['home','Home'],['tests','Soil tests'],['needs','Needs'],['mix','Mix'],['plan','Plan'],['settings','Settings']];
-  $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')"><span class="ti">${TABICON[k]}</span><span class="tl">${l}</span></button>`).join('');
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
-    $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
+    $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or upload a PDF or photo of the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -374,7 +400,7 @@ function vHome(){
       <div class="hsteps"><span><b>1</b> Add your lab report</span><span><b>2</b> See what's missing</span><span><b>3</b> Get your shopping list</span></div>`}</div>
   <h2 style="margin:4px 0">${has?'What would you like to do?':'Choose how to start'}</h2>
   <div class="opts">
-    <label class="opt"><span class="ic">📷</span><b>Scan a lab report</b><span class="d">Take a photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
+    <label class="opt"><span class="ic">📷</span><b>Upload a lab report</b><span class="d">Upload a PDF or photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*,application/pdf,.pdf" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
     <button class="opt" onclick="S.ui.testMode='submit';setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
     <label class="opt"><span class="ic">📄</span><b>Import a file</b><span class="d">Load our spreadsheet template (.csv), a soiltest.xml, or a backup.</span><input type="file" accept=".xml,.json,.csv" hidden onchange="importAny(this.files[0]);this.value=''"></label>
     <button class="opt" onclick="loadExample()"><span class="ic">🧪</span><b>Try it with example data</b><span class="d">Two sample garden beds, so you can look around first. Delete them any time.</span></button>
@@ -561,7 +587,7 @@ function vMix(){
     <div class="row noprint" style="margin:6px 0"><label class="btn alt" style="cursor:pointer">📷 Scan a bottle / bag label<input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label><button class="btn alt" onclick="newProduct()">+ Add by hand</button><span id="labelmsg" class="muted tiny"></span></div>
     <div id="prodreview">${prodReviewHtml()}</div>
     <p class="tiny muted" style="margin:2px 0 6px">Tick “Have” for products you already own. Anything not ticked goes on your shopping list.</p>
-    <div class="scroll"><table><tr><th>Product</th><th title='Tick the products you already own. Unticked products are treated as things to buy, and unticking clears the amount.'>I have it</th><th>Amount</th><th style="text-align:left">Contains</th></tr>${COMPS.map(c=>`<tr><td>${esc(c.id)}${(mix[c.id]>0&&!isOn(c.id))?' <span class="pill warn">to buy</span>':''}${c.custom?` <span class="pill">yours</span> <a href="#" class="tiny" onclick="delProduct('${esc(c.id).replace(/'/g,'')}');return false" title="remove">×</a>`:''}</td>
+    <div class="scroll"><table class="prod"><tr><th>Product</th><th title='Tick the products you already own. Unticked products are treated as things to buy, and unticking clears the amount.'>I have it</th><th>Amount</th><th style="text-align:left">Contains</th></tr>${COMPS.map(c=>`<tr><td>${esc(c.id)}${(mix[c.id]>0&&!isOn(c.id))?' <span class="pill warn">to buy</span>':''}<div class="pcon tiny">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</div>${c.custom?` <span class="pill">yours</span> <a href="#" class="tiny" onclick="delProduct('${esc(c.id).replace(/'/g,'')}');return false" title="remove">×</a>`:''}</td>
       <td><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="toggleHave('${c.id}',this.checked)"></td>
       <td style="white-space:nowrap"><input type="number" min="0" step="${unitOf(c.id)==='oz'?0.5:0.05}" value="${mix[c.id]?+(mix[c.id]*(unitOf(c.id)==='oz'?16:1)).toFixed(3):''}" placeholder="0" oninput="setAmt('${c.id}',this.value)"> <span class="seg tiny"><button class="${unitOf(c.id)==='oz'?'on':''}" onclick="setUnit('${c.id}','oz')">oz</button><button class="${unitOf(c.id)==='lb'?'on':''}" onclick="setUnit('${c.id}','lb')">lb</button></span><div class="muted tiny" id="lb_${c.id}">${mix[c.id]?'≈ '+(unitOf(c.id)==='oz'?mix[c.id].toFixed(2)+' lb':(mix[c.id]*16).toFixed(1)+' oz'):''}</div></td>
       <td class="tiny" style="text-align:left;color:#000">${Object.entries(c.minerals).map(([m,p])=>`${E.SYMBOL[m]||m} ${(p*100).toFixed(p<.01?2:1)}%${c.noCount&&c.noCount.includes(m)?' (not counted)':''}`).join(', ')}</td></tr>`).join('')}</table></div></div>
@@ -819,9 +845,9 @@ function vTests(){
     <div class="scroll"><table><tr><th>Date</th><th style="text-align:left">Garden</th><th style="text-align:left">Bed</th><th>TEC</th><th>pH</th><th></th></tr>${dates().flatMap(dt=>gardensOf(dt).map(k=>{ const key=dt+'|'+k, pend=PEND===key; return `<tr><td>${fmtDate(dt)}</td><td style="text-align:left">${esc(gLab(nameParts(k).g))}</td><td style="text-align:left">${nameParts(k).b?esc(bLab(nameParts(k).b)):'<span class="muted">–</span>'}</td><td>${S.tests[dt][k].TEC??''}</td><td>${S.tests[dt][k].PH??''}</td><td style="text-align:right;white-space:nowrap">${pend?`<b>Delete this sample?</b> <button class="btn danger" onclick="delSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn alt" onclick="editSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Edit</button> <button class="btn alt" onclick="pend('${dt}|${esc(k).replace(/'/g,"\\'")}')">Delete</button>`}</td></tr>`; })).join('')||'<tr><td colspan="6" class="muted">Nothing saved yet.</td></tr>'}</table></div></div>
     <div class="card scroll"><div class="row"><h2>History</h2><select onchange="S.ui.histEl=this.value;render()">${FIELDS.slice(0,3).concat(EL,['Aluminium','Silicon']).map(f=>`<option ${f===histEl?'selected':''}>${f}</option>`).join('')}</select><span class="muted tiny">ppm per garden over time</span></div><table>${hist}</table></div>
   <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
-  const submitHtml=`  <div class="card" id="scancard"><h2>📷 Scan a lab report</h2>
-    <p class="sub">Take a photo of the report (or pick one from your library). Claude reads the values; you check them before they're saved.</p>
-    <div class="row"><label class="btn" style="cursor:pointer">Take / choose photo<input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
+  const submitHtml=`  <div class="card" id="scancard"><h2>⬆️ Upload a lab report</h2>
+    <p class="sub">Upload a PDF or a photo of your lab report. Claude reads the values, and you check them against the paper before they're saved. You can also take a photo with your camera.</p>
+    <div class="row"><label class="btn" style="cursor:pointer">Upload PDF or photo<input type="file" accept="image/*,application/pdf,.pdf" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
     <div id="review">${reviewHtml()}</div></div>
   <div class="card" id="editform"><h2>${EDIT?'Edit a saved sample':'Add a new lab report'}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. Same date + garden + bed overwrites.</p>
     <div class="grid top"><label><span>Date</span><input type="date" id="nd" value="${new Date().toISOString().slice(0,10)}"></label><label><span>Garden (number, letter or name)</span><input type="text" id="nn" placeholder="e.g. 1, A or Front" list="gl"></label><label><span>Bed (number, letter or name)</span><input type="text" id="nb" placeholder="e.g. 3, B or Herbs (optional)"></label><label><span>Sample ID</span><input type="text" id="f_SampleID" placeholder="as printed (optional)"></label><datalist id="gl">${[...new Set(allG.map(g=>nameParts(g).g))].map(g=>`<option>${esc(g)}</option>`).join('')}</datalist></div>
@@ -926,28 +952,38 @@ async function initCaps(){
 }
 function setMsg(m){ const el=$('#scanmsg'); if(el) el.textContent=m; const c=$('#scancard'); if(c&&m) c.style.display='block'; }
 function shrink(file,max){ return createImageBitmap(file).then(bm=>{ const s=Math.min(1,max/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*s); c.height=Math.round(bm.height*s); c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); }); }
+const PDFJS='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+async function pdfToImages(file,maxPages=4){
+  let lib; try{ lib=await import(PDFJS+'pdf.min.mjs'); const w=await (await fetch(PDFJS+'pdf.worker.min.mjs')).text(); lib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w],{type:'text/javascript'})); }
+  catch(e){ throw new Error('PDF reader could not load'); }
+  const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise, out=[];
+  for(let i=1;i<=Math.min(doc.numPages,maxPages);i++){ const pg=await doc.getPage(i), v0=pg.getViewport({scale:1}), sc=Math.min(2.5,2000/Math.max(v0.width,v0.height)), v=pg.getViewport({scale:sc});
+    const c=document.createElement('canvas'); c.width=Math.round(v.width); c.height=Math.round(v.height); await pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+    out.push(await new Promise(r=>c.toBlob(r,'image/jpeg',.9))); }
+  return out; }
+const isPdf=f=>f&&(f.type==='application/pdf'||/\.pdf$/i.test(f.name||''));
 async function scanPhoto(file){
   if(!file) return;
   const claudeOk=CL.sample&&CL.imgs;
-  setMsg(claudeOk?'Reading the photo… this takes 10–30 seconds.':'Reading text on your device… first use downloads a small recognition model (about 10 MB).');
+  setMsg(claudeOk?'Reading your report… this takes 10–30 seconds.':'Reading text on your device… first use downloads a small recognition model (about 10 MB).');
   try{
     let j;
     if(claudeOk){
-      const blob=await shrink(file,1800);
-      const prompt=`You are reading a photo of a soil-test lab report. Extract the results for every sample/garden column or row on it.
+      const imgs=isPdf(file)?await pdfToImages(file):[await shrink(file,1800)];
+      const prompt=`You are reading a soil-test lab report (a photo, or the page images of a PDF; combine all pages). Extract the results for every sample/garden column or row on it.
 Return ONLY one JSON object, no other text:
 {"date": "YYYY-MM-DD" or null, "units": "ppm" or the unit actually printed, "notes": "anything illegible, ambiguous or odd", "rows": [ {"name": "sample/garden id as printed", "TEC": number, "PH": number, "SOMpct": number, "EC": number, "Sulphur": number, "Phosphorous": number, "Calcium": number, "Magnesium": number, "Potassium": number, "Sodium": number, "Boron": number, "Iron": number, "Manganese": number, "Copper": number, "Zinc": number, "Aluminium": number, "Cobalt": number, "Molybdenum": number, "Selenium": number, "Silicon": number, "LabNo": number, "Depth": number, "OtherBases": number, "ExchH": number } ], "lab": "lab name printed on the report or null"}
 Rules: TEC is Total Exchange Capacity (CEC) in meq/100g. SOMpct is organic matter %. Use the element ppm values (not %-saturation or meq). LabNo is the lab number, Depth the sample depth in inches, OtherBases and ExchH are the base-saturation % rows for Other Bases and Exchangeable Hydrogen. For a value printed like “< 0.02” use 0.02 and mention it in notes. Use null for any value not on the page. Copy digits exactly; never guess a number you cannot read - use null and mention it in notes.`;
-      const r=await CL.sample(prompt,{images:[blob],modelTier:'complex',cache:false});
+      const r=await CL.sample(prompt,{images:imgs,modelTier:'complex',cache:false});
       const m=(r.text||'').replace(/```json|```/g,'').match(/\{[\s\S]*\}/); if(!m) throw new Error('no JSON in reply');
       j=JSON.parse(m[0]);
     } else {
-      j=parseLabReport(await ocrText(file));
+      j=parseLabReport(isPdf(file)?(await Promise.all((await pdfToImages(file)).map(async b=>{const T=await loadTess(); return (await T.recognize(b,'eng')).data.text||'';}))).join('\n'):await ocrText(file));
     }
     SCAN={lab:j.lab||'',date:(j.date||new Date().toISOString().slice(0,10)),units:j.units||'ppm',notes:j.notes||'',rows:(j.rows||[]).map((x,i)=>({name:String(x.name||('Sample '+(i+1))),vals:Object.fromEntries(FIELDS.filter(f=>typeof x[f]==='number').map(f=>[f,x[f]]))}))};
     setMsg(SCAN.rows.length?`Found ${SCAN.rows.length} sample(s). Check every number against the paper before saving.`:'No results found - try a sharper, flatter photo, or type the values below.');
     $('#review').innerHTML=reviewHtml();
-  }catch(e){ setMsg('Could not read the photo ('+(e&&e.message||e.code||'error')+'). Check your internet connection and try again, or type the values.'); }
+  }catch(e){ setMsg('Could not read the file ('+(e&&e.message||e.code||'error')+'). '+(isPdf(file)?'If PDFs will not open here, take a photo or screenshot of the report instead, or ':'Check your internet connection and try again, or ')+'type the values.'); }
 }
 // ---- free on-device text recognition (Tesseract.js, loaded on first use) ----
 let _tess=null;
