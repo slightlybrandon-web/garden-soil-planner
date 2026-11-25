@@ -368,7 +368,7 @@ function vHome(){
   <h2 style="margin:4px 0">${has?'What would you like to do?':'Choose how to start'}</h2>
   <div class="opts">
     <label class="opt"><span class="ic">📷</span><b>Scan a lab report</b><span class="d">Take a photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
-    <button class="opt" onclick="setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
+    <button class="opt" onclick="S.ui.testMode='submit';setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
     <label class="opt"><span class="ic">📄</span><b>Import a file</b><span class="d">Load our spreadsheet template (.csv), a soiltest.xml, or a backup.</span><input type="file" accept=".xml,.json,.csv" hidden onchange="importAny(this.files[0]);this.value=''"></label>
     <button class="opt" onclick="loadExample()"><span class="ic">🧪</span><b>Try it with example data</b><span class="d">Two sample garden beds, so you can look around first. Delete them any time.</span></button>
     <label class="opt"><span class="ic">🏷️</span><b>Scan a product label</b><span class="d">Photograph a fertilizer bag or bottle to add it to your products.</span><input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label>
@@ -416,7 +416,7 @@ function importCsv(file){ file.text().then(t=>{
     const key=keyOf(rec.Garden||('Sample '+(ri+1)),rec.Bed);
     if(!vals.TEC){ skip.push(ri+2); return; }
     (S.tests[dt] ||= {})[key]=vals; if(!(key in S.sizes)) S.sizes[key]=0; S.ui.date=dt; n++; });
-  save(); render(); alert(`Imported ${n} test row${n===1?'':'s'}.`+(skip.length?` Skipped rows without a TEC value: ${skip.join(', ')}.`:'')); }); }
+  S.ui.testMode='view'; save(); render(); alert(`Imported ${n} test row${n===1?'':'s'}.`+(skip.length?` Skipped rows without a TEC value: ${skip.join(', ')}.`:'')); }); }
 
 
 /* ---------------- NEEDS ---------------- */
@@ -749,7 +749,7 @@ function reportHtml(){
   const rest=g=>{ const t=T(g); let sum=0; for(const e of ['Calcium','Magnesium','Potassium','Sodium']){ const v=satv(g,e); if(v==='') return ''; sum+=v; } return +(100-sum).toFixed(2); };
   const body=`
     <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample Location</td>${gs.map(g=>`<th class="sh">${esc(nameLabel(g))} <a href="#" class="noprint" style="color:#cfe0f5;font-size:12px;font-weight:400" onclick="editSample('${d}','${esc(g).replace(/'/g,"\\'")}');return false">✎ edit</a></th>`).join('')}</tr>
-    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample ID</td>${gs.map(g=>`<th class="sh sub"></th>`).join('')}</tr>
+    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample ID</td>${gs.map(g=>`<th class="sh sub">${esc(T(g).SampleID||'')}</th>`).join('')}</tr>
     ${row('Lab Number','',g=>num(T(g).LabNo))}
     ${row('Sample Depth in inches','',g=>num(T(g).Depth))}
     ${row('Total Exchange Capacity (M.E.)','',g=>num(T(g).TEC))}
@@ -792,37 +792,48 @@ function reportHtml(){
 }
 
 /* ---------------- TESTS ---------------- */
-const FIELDS=['TEC','PH','SOMpct','EC','Sulphur','Phosphorous','Calcium','Magnesium','Potassium','Sodium','Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon'];
+const FIELDS=['TEC','PH','SOMpct','EC','Sulphur','Phosphorous','Calcium','Magnesium','Potassium','Sodium','Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon','LabNo','Depth','OtherBases','ExchH'];
+const FLAB={LabNo:'Lab number',Depth:'Sample depth (inches)',TEC:'Total exchange capacity (TEC, meq/100g)',PH:'pH',SOMpct:'Organic matter (%)',EC:'EC',OtherBases:'Other bases (%)',ExchH:'Exchangeable hydrogen (%)'};
+const FORMORDER=['LabNo','Depth','TEC','PH','SOMpct'].concat(FIELDS.filter(f=>!['LabNo','Depth','TEC','PH','SOMpct'].includes(f)));
 function vTests(){
   const d=S.ui.date, histEl=S.ui.histEl||'Potassium';
   const allG=[...new Set(dates().flatMap(gardensOf))].sort();
   const gg=groupGardens(allG), anyBed=allG.some(k=>nameParts(k).b), order=Object.values(gg).flat();
   const hist=(anyBed?`<tr><th rowspan="2">Date</th>${Object.entries(gg).map(([g,ks])=>`<th colspan="${ks.length}" class="gh" style="text-align:center">${esc(gLab(g))}</th>`).join('')}</tr><tr>${order.map(k=>`<th style="text-align:center">${esc(nameParts(k).b?bLab(nameParts(k).b):'–')}</th>`).join('')}</tr>`:`<tr><th>Date</th>${order.map(g=>`<th>${esc(gLab(g))}</th>`).join('')}</tr>`)+dates().map(dt=>`<tr><td>${fmtDate(dt)}</td>${order.map(g=>{const v=S.tests[dt][g]?.[histEl];return `<td>${v===undefined?'<span class="zero">·</span>':v}</td>`}).join('')}</tr>`).join('');
-  $('#main').innerHTML=`
-  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${dates().length?dates().length+' test dates on file.':'No tests yet.'} Pick a date below to view it, or add a new one by scanning, typing or importing.</p></div>
-    <div class="right row noprint"><button class="btn alt" onclick="downloadTemplate()" title="A spreadsheet (CSV) with the exact columns the app reads">Download template</button><label class="btn alt" style="cursor:pointer">Import CSV / XML<input type="file" accept=".csv,.xml" hidden onchange="importAny(this.files[0]);this.value=''"></label>
-    <button class="btn alt" onclick="exportAll()">Export backup</button><label class="btn alt" style="cursor:pointer">Restore backup<input type="file" accept=".json" hidden onchange="importBackup(this.files[0])"></label></div></div></div>
-  ${dates().length?reportHtml()+missingBar(d):''}
-  <div class="card" id="scancard"><h2>📷 Scan a lab report</h2>
+  const flash=FLASH; FLASH='';
+  const mode=EDIT?'submit':(S.ui.testMode||(dates().length?'view':'submit'));
+  const toggle=`<div class="seg noprint"><button class="${mode==='view'?'on':''}" onclick="setMode('view')">📋 View my tests${dates().length?' ('+dates().length+')':''}</button><button class="${mode==='submit'?'on':''}" onclick="setMode('submit')">➕ Submit a test</button></div>`;
+  const tools=mode==='submit'
+    ?`<button class="btn alt" onclick="downloadTemplate()" title="A spreadsheet (CSV) with the exact columns the app reads">Download template</button><label class="btn alt" style="cursor:pointer">Import CSV / XML<input type="file" accept=".csv,.xml" hidden onchange="importAny(this.files[0]);this.value=''"></label>`
+    :`<button class="btn alt" onclick="exportAll()">Export backup</button><label class="btn alt" style="cursor:pointer">Restore backup<input type="file" accept=".json" hidden onchange="importBackup(this.files[0])"></label>`;
+  const viewHtml=`${dates().length?reportHtml()+missingBar(d):''}
+  <div class="card" id="savedcard"><h2>Saved samples</h2><p class="sub" style="margin:0 0 8px">Entered something wrong? Press Edit to fix the values, name or date, or Delete to remove a sample.</p>
+    <div class="scroll"><table><tr><th>Date</th><th style="text-align:left">Garden</th><th style="text-align:left">Bed</th><th>TEC</th><th>pH</th><th></th></tr>${dates().flatMap(dt=>gardensOf(dt).map(k=>{ const key=dt+'|'+k, pend=PEND===key; return `<tr><td>${fmtDate(dt)}</td><td style="text-align:left">${esc(gLab(nameParts(k).g))}</td><td style="text-align:left">${nameParts(k).b?esc(bLab(nameParts(k).b)):'<span class="muted">–</span>'}</td><td>${S.tests[dt][k].TEC??''}</td><td>${S.tests[dt][k].PH??''}</td><td style="text-align:right;white-space:nowrap">${pend?`<b>Delete this sample?</b> <button class="btn danger" onclick="delSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn alt" onclick="editSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Edit</button> <button class="btn alt" onclick="pend('${dt}|${esc(k).replace(/'/g,"\\'")}')">Delete</button>`}</td></tr>`; })).join('')||'<tr><td colspan="6" class="muted">Nothing saved yet.</td></tr>'}</table></div></div>
+    <div class="card scroll"><div class="row"><h2>History</h2><select onchange="S.ui.histEl=this.value;render()">${FIELDS.slice(0,3).concat(EL,['Aluminium','Silicon']).map(f=>`<option ${f===histEl?'selected':''}>${f}</option>`).join('')}</select><span class="muted tiny">ppm per garden over time</span></div><table>${hist}</table></div>
+  <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
+  const submitHtml=`  <div class="card" id="scancard"><h2>📷 Scan a lab report</h2>
     <p class="sub">Take a photo of the report (or pick one from your library). Claude reads the values; you check them before they're saved.</p>
     <div class="row"><label class="btn" style="cursor:pointer">Take / choose photo<input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
     <div id="review">${reviewHtml()}</div></div>
-  <div class="card" id="savedcard"><h2>Saved samples</h2><p class="sub" style="margin:0 0 8px">Entered something wrong? Press Edit to fix the values, name or date, or Delete to remove a sample.</p>
-    <div class="scroll"><table><tr><th>Date</th><th style="text-align:left">Garden</th><th style="text-align:left">Bed</th><th>TEC</th><th>pH</th><th></th></tr>${dates().flatMap(dt=>gardensOf(dt).map(k=>{ const key=dt+'|'+k, pend=PEND===key; return `<tr><td>${fmtDate(dt)}</td><td style="text-align:left">${esc(gLab(nameParts(k).g))}</td><td style="text-align:left">${nameParts(k).b?esc(bLab(nameParts(k).b)):'<span class="muted">–</span>'}</td><td>${S.tests[dt][k].TEC??''}</td><td>${S.tests[dt][k].PH??''}</td><td style="text-align:right;white-space:nowrap">${pend?`<b>Delete this sample?</b> <button class="btn danger" onclick="delSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn alt" onclick="editSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Edit</button> <button class="btn alt" onclick="pend('${dt}|${esc(k).replace(/'/g,"\\'")}')">Delete</button>`}</td></tr>`; })).join('')||'<tr><td colspan="6" class="muted">Nothing saved yet.</td></tr>'}</table></div></div>
   <div class="card" id="editform"><h2>${EDIT?'Edit a saved sample':'Add a new lab report'}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. Same date + garden + bed overwrites.</p>
     <div class="row"><label>Date <input type="date" id="nd" value="${new Date().toISOString().slice(0,10)}"></label><label>Garden (number, letter or name) <input type="text" id="nn" placeholder="e.g. 1, A or Front" style="width:170px" list="gl"></label><label>Bed (number, letter or name) <input type="text" id="nb" placeholder="e.g. 3, B or Herbs (optional)" style="width:210px"></label><datalist id="gl">${[...new Set(allG.map(g=>nameParts(g).g))].map(g=>`<option>${esc(g)}</option>`).join('')}</datalist></div>
-    <div class="grid" style="margin-top:10px">${FIELDS.map(f=>`<label>${f}<input type="number" step="any" id="f_${f}" style="width:100%"></label>`).join('')}</div>
-    <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>
-  <div class="card scroll"><div class="row"><h2>History</h2><select onchange="S.ui.histEl=this.value;render()">${FIELDS.slice(0,3).concat(EL,['Aluminium','Silicon']).map(f=>`<option ${f===histEl?'selected':''}>${f}</option>`).join('')}</select><span class="muted tiny">ppm per garden over time</span></div><table>${hist}</table></div>
-  <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
+    <div class="row" style="margin-top:10px"><label>Sample ID <input type="text" id="f_SampleID" placeholder="as printed on the report (optional)" style="width:260px"></label></div>
+    <div class="grid" style="margin-top:10px">${FORMORDER.map(f=>`<label>${FLAB[f]||f}${f==='TEC'?' *':''}<input type="number" step="any" id="f_${f}" style="width:100%"></label>`).join('')}</div>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>`;
+  $('#main').innerHTML=`
+  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${mode==='view'?(dates().length?dates().length+' test date'+(dates().length>1?'s':'')+' on file. Pick a date to see its report.':'No tests yet. Switch to Submit a test to add one.'):'Add a test by scanning your lab report, importing a file, or typing the values in.'}</p></div>
+    <div class="right row noprint">${toggle}</div></div>
+    <div class="row noprint" style="margin-top:8px">${tools}</div></div>
+  ${flash&&mode==='view'?`<div class="okbox"><b>✓ ${esc(flash)}</b></div>`:''}
+  ${mode==='view'?viewHtml:submitHtml}`;
 }
-
-let EDIT=null, PEND='';
+function setMode(m){ S.ui.testMode=m; if(m==='view') EDIT=null; PEND=''; save(); render(); }
+let EDIT=null, PEND='', FLASH='';
 function pend(v){ PEND=v; render(); }
-function editSample(d,k){ EDIT={d,k}; PEND=''; setTab('tests'); setTimeout(()=>{ const t=S.tests[d][k], np=nameParts(k);
+function editSample(d,k){ EDIT={d,k}; PEND=''; S.ui.testMode='submit'; setTab('tests'); setTimeout(()=>{ const t=S.tests[d][k], np=nameParts(k);
     const y=d.slice(0,4), mo=d.slice(4,6)==='00'?'01':d.slice(4,6), da=d.slice(6,8)==='00'||!d.slice(6,8)?'01':d.slice(6,8);
     $('#nd').value=`${y}-${mo}-${da}`; $('#nn').value=np.g; $('#nb').value=np.b;
-    for(const f of FIELDS) $('#f_'+f).value=t[f]!==undefined?t[f]:'';
+    for(const f of FIELDS) $('#f_'+f).value=t[f]!==undefined?t[f]:''; $('#f_SampleID').value=t.SampleID||'';
     const el=document.getElementById('editform'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },60); }
 function cancelEdit(){ EDIT=null; render(); }
 function delSample(d,k){ delete S.tests[d][k]; if(!Object.keys(S.tests[d]).length) delete S.tests[d];
@@ -831,12 +842,13 @@ function addTest(){
   const dt=$('#nd').value.replace(/-/g,''), nm=keyOf($('#nn').value,($('#nb')||{}).value), row={};
   if(!dt||!nm){ $('#addmsg').textContent='Need a date and a garden (bed is optional).'; return; }
   for(const f of FIELDS){ const v=parseFloat($('#f_'+f).value); if(!isNaN(v)) row[f]=v; }
+  const sid=$('#f_SampleID').value.trim(); if(sid) row.SampleID=sid;
   if(!row.TEC){ $('#addmsg').textContent='TEC is required — every target is based on it.'; return; }
-  const was=EDIT; 
+  const was=EDIT; FLASH=was?`Updated ${nameLabel(nm)} for ${fmtDate(dt)}.`:`Saved ${nameLabel(nm)} for ${fmtDate(dt)}.`;
   if(was && (was.d!==dt||was.k!==nm)){ delete S.tests[was.d][was.k]; if(!Object.keys(S.tests[was.d]).length) delete S.tests[was.d];
     if(was.k!==nm){ if(!S.sizes[nm]&&S.sizes[was.k]) S.sizes[nm]=S.sizes[was.k]; S.ui.sel=S.ui.sel.map(x=>x===was.k?nm:x); if(S.ui.garden===was.k) S.ui.garden=nm; } }
-  (S.tests[dt] ||= {})[nm]=row; if(!(nm in S.sizes)) S.sizes[nm]=0; S.ui.date=dt; EDIT=null; save(); render();
-  $('#addmsg').textContent=was?`Updated ${nm} for ${fmtDate(dt)}.`:`Saved ${nm} for ${fmtDate(dt)}.`;
+  (S.tests[dt] ||= {})[nm]=row; if(!(nm in S.sizes)) S.sizes[nm]=0; S.ui.date=dt; EDIT=null; S.ui.testMode='view'; save(); render();
+
 }
 function delDate(){ const x=$('#deld').value; if(!x) return; PEND=''; delete S.tests[x]; S.ui.date=dates()[0]; save(); render(); }
 function importXml(file){ if(!file) return; file.text().then(t=>{
@@ -844,7 +856,7 @@ function importXml(file){ if(!file) return; file.text().then(t=>{
   doc.querySelectorAll('*').forEach(e=>{ if(!e.tagName.startsWith('SoilTestDate_')) return; const k=e.tagName.split('_')[1];
     e.querySelectorAll('TestId').forEach(r=>{ const row={}; for(const f of FIELDS){ const v=parseFloat(r.getAttribute(f)); if(!isNaN(v)) row[f]=v; }
       (S.tests[k] ||= {})[r.getAttribute('Name')]=row; n++; }); });
-  save(); alert(`Imported ${n} test rows.`); S.ui.date=dates()[0]; render(); }); }
+  S.ui.testMode='view'; save(); alert(`Imported ${n} test rows.`); S.ui.date=dates()[0]; render(); }); }
 async function download(name,text,mime){
   try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:name,data:text}); return; } } }catch(e){ return; }
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/json'})); a.download=name; a.click(); }
@@ -971,7 +983,7 @@ function saveScan(){
   if(!dt||bad.length){ $('#scansave').textContent='Every sample needs a garden (and a TEC value).'; return; }
   for(const r of SCAN.rows){ (S.tests[dt] ||= {})[r.name.trim()]={...r.vals}; if(!(r.name.trim() in S.sizes)) S.sizes[r.name.trim()]=0; }
   if(SCAN.lab){ (S.reportInfo ||= {})[dt]={lab:SCAN.lab}; }
-  S.ui.date=dt; SCAN=null; save(); render();
+  S.ui.date=dt; SCAN=null; S.ui.testMode='view'; save(); render();
 }
 // sync: one shared document holds tests, sizes, settings, mixes
 let pushT=null, lastT=0, synced=false;
