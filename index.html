@@ -1272,6 +1272,9 @@ let ACCT=null; try{ ACCT=JSON.parse(localStorage.getItem(AK)||'null'); }catch(e)
 let ACPROF=false, ACDEL=false, ACMSG='', ACBUSY=false, ACMODE='in', ACCHOICE=null, ACSYNC=false, ACOUT=false, acT=null;
 const sbOn=()=>!CL.db;
 const hasData=()=>dates().length>0||Object.keys(S.custom||[]).length>0;
+/* password reset: the emailed link returns here with a one-time token in the address; offer a "set new password" box */
+let ACREC=null, ACPW=false;
+try{ const h=new URLSearchParams((location.hash||'').replace(/^#/,'')); if(h.get('type')==='recovery'&&h.get('access_token')){ ACREC={token:h.get('access_token'),refresh:h.get('refresh_token')||'',exp:+h.get('expires_in')||3600}; history.replaceState(null,'',location.pathname+location.search); } }catch(e){}
 async function sbReq(url,opt){ const r=await fetch(SB_URL+url,opt); let j=null; try{ j=await r.json(); }catch(e){} if(!r.ok) throw new Error((j&&(j.msg||j.error_description||j.message||j.error))||('Error '+r.status)); return j; }
 const sbHead=(tok)=>({apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY),'Content-Type':'application/json'});
 function setAcct(r){ ACCT={token:r.access_token,refresh:r.refresh_token,exp:Date.now()+Math.max(60,(r.expires_in||3600)-60)*1000,email:(r.user&&r.user.email)||(ACCT&&ACCT.email),uid:(r.user&&r.user.id)||(ACCT&&ACCT.uid)}; try{localStorage.setItem(AK,JSON.stringify(ACCT));}catch(e){} }
@@ -1295,9 +1298,22 @@ function profHtml(){ const pf=S.profile||{name:'',bio:''}, ini=((pf.name||ACCT.e
   return `<div class="profile"><div class="av">${esc(ini)}</div><div style="flex:1;min-width:220px"><div class="pn">${esc(pf.name||'Add your name')}</div><div class="tiny muted">${esc(ACCT.email||'')}</div>
     ${pf.bio?`<p style="margin:6px 0 0">${esc(pf.bio)}</p>`:''}<div class="chips"><span>${esc(profSummary())}</span></div></div><button class="btn alt" onclick="ACPROF=true;render()">Edit profile</button></div>`; }
 function profSave(){ S.profile={name:($('#pfName').value||'').trim().slice(0,40),bio:($('#pfBio').value||'').trim().slice(0,300)}; ACPROF=false; save(); render(); }
+function pwBox(rec){ return `<div class="${rec?'':'warnbox'}" style="margin-top:10px"><b>${rec?'Choose a new password':'Change your password'}</b><div class="grid top" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:6px"><label><span>New password (at least 6 characters)</span><input type="password" id="npw1" autocomplete="new-password"></label><label><span>Type it again</span><input type="password" id="npw2" autocomplete="new-password" onkeydown="if(event.key==='Enter')setNewPw()"></label></div><div class="row" style="margin-top:8px"><button class="btn" ${ACBUSY?'disabled':''} onclick="setNewPw()">${ACBUSY?'One moment…':'Save new password'}</button>${rec?'':`<button class="btn alt" onclick="ACPW=false;ACMSG='';render()">Cancel</button>`}</div></div>`; }
+async function setNewPw(){ const a=($('#npw1')||{}).value||'', b=($('#npw2')||{}).value||'';
+  if(a.length<6){ ACMSG='Choose a password with at least 6 characters.'; render(); return; } if(a!==b){ ACMSG='The two passwords do not match.'; render(); return; }
+  ACBUSY=true; ACMSG=''; render();
+  try{
+    let tok;
+    if(ACREC) tok=ACREC.token; else { if(!(await ensureTok())) throw new Error('Please sign in again.'); tok=ACCT.token; }
+    const u=await sbReq('/auth/v1/user',{method:'PUT',headers:sbHead(tok),body:JSON.stringify({password:a})});
+    if(ACREC){ setAcct({access_token:ACREC.token,refresh_token:ACREC.refresh,expires_in:ACREC.exp,user:u}); ACREC=null; ACBUSY=false; ACMSG='Your password is changed and you are signed in.'; await acctPull(true); }
+    else { ACBUSY=false; ACPW=false; ACMSG='Your password is changed.'; render(); }
+  }catch(err){ ACBUSY=false; ACMSG=(ACREC?'That reset link has expired or was already used. Press Forgot password to get a new one. ':'')+err.message; if(ACREC) ACREC=null; render(); } }
 function acctCard(){ if(!sbOn()) return '';
+  if(ACREC) return `<div class="card noprint" id="acctcard"><h2>${ic('cloud')} Reset your password</h2><p class="sub" style="margin:0">Pick a new password for your account. You will be signed in right after.</p>${pwBox(true)}${ACMSG?`<p class="tiny" style="margin:8px 0 0"><b>${esc(ACMSG)}</b></p>`:''}</div>`;
   if(ACCT){ return `<div class="card noprint" id="acctcard">${profHtml()}<hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="row"><div><h2>${ic('cloud')} Saved to your account</h2><p class="sub" style="margin:0">Everything you add is saved automatically, so you can pick up where you left off on any phone or computer.</p></div>
-    <div class="right">${ACDEL?'':''}${ACOUT?`<span class="tiny">This removes your data from this device only; it stays in your account.</span> <button class="btn" onclick="acctSignOut()">Yes, sign out</button> <button class="btn alt" onclick="ACOUT=false;render()">Cancel</button>`:`<button class="btn alt" onclick="ACOUT=true;render()">Sign out</button>`}</div></div>
+    <div class="right">${ACDEL?'':''}${ACOUT?`<span class="tiny">This removes your data from this device only; it stays in your account.</span> <button class="btn" onclick="acctSignOut()">Yes, sign out</button> <button class="btn alt" onclick="ACOUT=false;render()">Cancel</button>`:`<button class="btn alt" onclick="ACPW=true;ACMSG='';render()">Change password</button> <button class="btn alt" onclick="ACOUT=true;render()">Sign out</button>`}</div></div>
+    ${ACPW?pwBox(false):''}
     <div class="tiny" style="margin-top:10px"><a href="#" onclick="setTab('privacy');return false">Privacy policy</a> · ${ACDEL?`</div><div class="warnbox" style="margin-top:8px"><b>Delete your account?</b> This permanently erases your account and every soil test, bed, product and mix saved in it. It cannot be undone. <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAll()">Download a backup first</button><button class="btn" style="background:#b00020;border-color:#b00020" ${ACBUSY?'disabled':''} onclick="acctDelete()">${ACBUSY?'Deleting…':'Yes, permanently delete my account'}</button><button class="btn alt" onclick="ACDEL=false;render()">Cancel</button></div></div><div class="tiny">`:`<a href="#" onclick="ACDEL=true;ACOUT=false;render();return false">Delete my account</a>`}</div>
     ${ACCHOICE?`<div class="warnbox" style="margin-top:10px"><b>This device already has soil tests, and your account has saved data too.</b><div class="row" style="margin-top:8px"><button class="btn" onclick="acctChoose('cloud')">Use my account's data</button><button class="btn alt" onclick="acctChoose('local')">Keep this device's data (replaces the account copy)</button></div></div>`:''}
     ${ACMSG?`<p class="tiny" style="margin:8px 0 0">${esc(ACMSG)}</p>`:''}</div>`; }
@@ -1474,6 +1490,7 @@ function renderCover(need){
   el.innerHTML=heavy+`<h2>What's missing <span class="muted tiny">(for the selected gardens)</span></h2>`+(rows.length? `<p class="tiny muted" style="margin:2px 0">${ok} of ${needed.length} needed minerals can be supplied by the products ticked “Have”.</p>`+rows.join('') : `<div class="okbox">Every needed mineral is covered by at least one product you ticked.</div>`);
 }
 
+if(typeof ACREC!=="undefined"&&ACREC) S.ui.tab="settings";
 render();
 </script>
 </body>
