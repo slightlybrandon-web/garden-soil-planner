@@ -80,6 +80,8 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
 @media(max-width:760px){.hero .heroart{opacity:.35;max-width:60%}.hero h2,.hero p,.hero .hsteps,.ticker{max-width:none}.qa{grid-template-columns:repeat(2,1fr)}.qa button{flex-direction:row;justify-content:center;gap:8px;padding:12px 8px;font-size:14px}.qa button span{font-size:20px}}
 .learnbox>summary{font-size:17px;font-weight:650;cursor:pointer}.ltabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.ltabs button{border:1px solid var(--line);background:#fff;color:var(--green);border-radius:99px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}.ltabs button.on{background:var(--green);color:#fff;border-color:var(--green)}
 .lpanel{display:none}.lpanel.on{display:block}.ltips{margin:0;padding-left:0;list-style:none;display:grid;gap:8px}.ltips li{background:#f4f8fd;border-left:3px solid #14407a;border-radius:8px;padding:9px 12px}.lpanel .step i .ic{width:20px;height:20px}
+.qa5{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.qa label{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--green);font:inherit;font-weight:650;cursor:pointer;text-align:center}.qa label:hover{border-color:var(--green);box-shadow:0 2px 8px rgba(16,40,80,.15)}.qa label span .ic{width:28px;height:28px}.qa small{font-weight:400;opacity:.8}
+@media(max-width:760px){.qa5{grid-template-columns:repeat(2,1fr)}.qa label{flex-direction:row;justify-content:center;padding:12px 8px;font-size:14px}.qa label span .ic{width:20px;height:20px}}
 .btn.big{font-size:18px;padding:14px 22px;min-height:52px}.herobtn{background:#fff;color:#0a1628;border-color:#fff}.learnbox summary{font-size:16px}
 .hsteps{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hsteps span{background:rgba(255,255,255,.14);border-radius:99px;padding:6px 14px;font-size:14px}.hsteps b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffd400;color:#0a0f1a;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
 .learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
@@ -314,7 +316,7 @@ function setTab(t){ S.ui.tab=t; save(); render(); }
 function render(){
   if(S.ui.tab==='report') S.ui.tab='tests';
   const tabs=[['home','Home'],['tests','Soil tests'],['needs','Needs'],['mix','Mix'],['plan','Plan'],['settings','Settings']];
-  $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')"><span class="ti">${TABICON[k]}</span><span class="tl">${l}</span></button>`).join('');
+  $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="${k==='tests'?'openTests()':`setTab('${k}')`}"><span class="ti">${TABICON[k]}</span><span class="tl">${l}</span></button>`).join('');
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or upload a PDF or photo of the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({privacy:vPrivacy,home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
@@ -432,6 +434,7 @@ function vPrivacy(){
   <p class="tiny muted">Garden Soil Planner gives general guidance based on the book <i>The Ideal Soil</i>. It is not professional agronomic advice; check amounts against your lab report and local rules.</p></div>`;
 }
 function learnShow(t){ document.querySelectorAll('.ltabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); document.querySelectorAll('.lpanel').forEach(p=>p.classList.toggle('on',p.dataset.p===t)); }
+function openTests(){ S.ui.testMode='info'; EDIT=null; PEND=''; setTab('tests'); }
 function startTest(){ S.ui.testMode='submit'; setTab('tests'); }
 function vHome(){
   const ds=dates(), has=ds.length, d=S.ui.date;
@@ -904,10 +907,10 @@ function vTests(){
   const gg=groupGardens(allG), anyBed=allG.some(k=>nameParts(k).b), order=Object.values(gg).flat();
   const hist=(anyBed?`<tr><th rowspan="2">Date</th>${Object.entries(gg).map(([g,ks])=>`<th colspan="${ks.length}" class="gh" style="text-align:center">${esc(gLab(g))}</th>`).join('')}</tr><tr>${order.map(k=>`<th style="text-align:center">${esc(nameParts(k).b?bLab(nameParts(k).b):'–')}</th>`).join('')}</tr>`:`<tr><th>Date</th>${order.map(g=>`<th>${esc(gLab(g))}</th>`).join('')}</tr>`)+dates().map(dt=>`<tr><td>${fmtDate(dt)}</td>${order.map(g=>{const v=S.tests[dt][g]?.[histEl];return `<td>${v===undefined?'<span class="zero">·</span>':v}</td>`}).join('')}</tr>`).join('');
   const flash=FLASH; FLASH='';
-  const mode=EDIT?'submit':(S.ui.testMode||(dates().length?'view':'submit'));
+  const mode=EDIT?'submit':(S.ui.testMode||'info');
   const nT=dates().length;
   const toggle=`<div class="pick noprint"><button class="${mode==='view'?'on':''}" onclick="setMode('view')"><span class="pi">${ic('clip')}</span><span><b>View my tests</b><small>${nT?nT+' test date'+(nT>1?'s':'')+' on file · see the report':'Nothing saved yet'}</small></span></button><button class="${mode==='submit'?'on':''}" onclick="setMode('submit')"><span class="pi">${ic('plus')}</span><span><b>Submit a test</b><small>Scan, import or type in a lab report</small></span></button></div>`;
-  const tools=mode==='submit'
+  const tools=mode==='info'?'':mode==='submit'
     ?`<button class="btn alt" onclick="downloadTemplate()" title="A spreadsheet (CSV) with the exact columns the app reads">Download template</button><label class="btn alt" style="cursor:pointer">Import CSV / XML<input type="file" accept=".csv,.xml" hidden onchange="importAny(this.files[0]);this.value=''"></label>`
     :`<button class="btn alt" onclick="exportAll()">Export backup</button><label class="btn alt" style="cursor:pointer">Restore backup<input type="file" accept=".json" hidden onchange="importBackup(this.files[0])"></label>`;
   const viewHtml=`${dates().length?reportHtml()+missingBar(d):''}
@@ -926,15 +929,41 @@ function vTests(){
     <h3 style="margin:16px 0 6px">Main nutrients (ppm)</h3><div class="grid fg" style="--c:6">${['Calcium','Magnesium','Potassium','Sodium','Sulphur','Phosphorous'].map((f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`)).join('')}</div>
     <h3 style="margin:16px 0 6px">Trace minerals (ppm)</h3><div class="grid fg" style="--c:5">${['Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon'].map((f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`)).join('')}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>`;
+  const infoHtml=`<div class="qa qa5 noprint"><button onclick="setMode('view')"><span>${ic('clip')}</span>View my tests${nT?` <small>(${nT})</small>`:''}</button><button onclick="setMode('submit')"><span>${ic('plus')}</span>Submit a test</button><button onclick="downloadTemplate()"><span>${ic('book')}</span>Download template</button><label><span>${ic('upload')}</span>Import a file<input type="file" accept=".csv,.xml,.json" hidden onchange="importAny(this.files[0]);this.value=''"></label>${nT?`<button onclick="exportAll()"><span>${ic('cloud')}</span>Export backup</button>`:`<button onclick="loadExample()"><span>${ic('flask')}</span>Try example data</button>`}</div>
+  <div class="card"><div class="ltabs noprint" role="tablist"><button class="on" data-t="use" onclick="learnShow('use')">Using this page</button><button data-t="read" onclick="learnShow('read')">Reading your report</button><button data-t="know" onclick="learnShow('know')">Good to know</button><button data-t="fmt" onclick="learnShow('fmt')">What you can upload</button></div>
+    <div class="lpanel on" data-p="use"><div class="steps">
+      <div class="step"><i>${ic('clip')}</i><b>View my tests</b><div class="tiny muted">Pick a test date to see its full report laid out like your lab's printout, with what is missing under it. Compare dates in the History table, and edit or remove anything that was entered wrong.</div></div>
+      <div class="step"><i>${ic('plus')}</i><b>Submit a test</b><div class="tiny muted">Three ways in: upload a PDF or photo and check the values it reads, type the numbers in by hand, or import a spreadsheet, soiltest.xml or backup file.</div></div>
+      <div class="step"><i>${ic('chart')}</i><b>Then what?</b><div class="tiny muted">Once a test is saved, Needs shows the gaps, Mix builds a recipe, and Plan gives you the shopping list. The soil test is where everything starts.</div></div></div></div>
+    <div class="lpanel" data-p="read"><ul class="ltips">
+      <li><b>Sample details.</b> Lab number, depth and your garden and bed names tell you which soil the numbers belong to.</li>
+      <li><b>TEC.</b> The total exchange capacity is how much the soil can hold. Every target is scaled from it, so it is the one required number.</li>
+      <li><b>pH and organic matter.</b> pH shows acidity. Organic matter is the soil's stored food and water-holding material.</li>
+      <li><b>Base saturation.</b> The share of the TEC filled by calcium, magnesium, potassium and sodium. The book aims for about 68%, 12%, 4% and 1.5%.</li>
+      <li><b>ppm values.</b> What the lab measured for each mineral. The app compares each one with its ideal level for your TEC.</li>
+      <li><b>Desired and deficit.</b> These columns are worked out by the app and can differ a little from the numbers printed on your lab's own report.</li></ul></div>
+    <div class="lpanel" data-p="know"><ul class="ltips">
+      <li><b>One sample per bed.</b> The same date, garden and bed saves over the earlier entry, which is handy for fixing a mistake.</li>
+      <li><b>Always check the numbers.</b> When a photo or PDF is read for you, compare the values with your paper report before saving.</li>
+      <li><b>Garden and bed.</b> A garden is the larger area and a bed is the plot inside it. Use numbers, letters or words.</li>
+      <li><b>Very small values.</b> Entries printed as "&lt; 0.02" are saved as 0.02.</li>
+      <li><b>Keep a copy.</b> Export a backup any time. With a free account your tests are also saved for you.</li>
+      <li><b>Mistakes are easy to fix.</b> Every saved sample has an Edit and a Delete button.</li></ul></div>
+    <div class="lpanel" data-p="fmt"><ul class="ltips">
+      <li><b>PDF.</b> The first few pages are read. Works best with a lab's own report.</li>
+      <li><b>Photo.</b> A clear, flat, well-lit photo of the printed report works well. Take it straight on.</li>
+      <li><b>Spreadsheet template (.csv).</b> Download the template, fill in a row per bed, and import it. The columns match this page's form.</li>
+      <li><b>soiltest.xml.</b> The file format from the original soil spreadsheet.</li>
+      <li><b>Backup (.json).</b> A file you exported earlier, to move your data to another device.</li></ul></div></div>`;
   $('#main').innerHTML=`
-  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${mode==='view'?(dates().length?dates().length+' test date'+(dates().length>1?'s':'')+' on file. Pick a date to see its report.':'No tests yet. Switch to Submit a test to add one.'):'Add a test by scanning your lab report, importing a file, or typing the values in.'}</p></div>
+  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${mode==='info'?'Your lab reports in one place. Choose an option to get started, or read the guide below.':mode==='view'?(dates().length?dates().length+' test date'+(dates().length>1?'s':'')+' on file. Pick a date to see its report.':'No tests yet. Switch to Submit a test to add one.'):'Add a test by scanning your lab report, importing a file, or typing the values in.'}</p></div>
     </div>
-    <div style="margin-top:12px">${toggle}</div>
+    <div style="margin-top:12px">${mode==='info'?'':toggle}</div>${mode==='info'?'':`<div class="tiny noprint" style="margin-top:8px"><a href="#" onclick="setMode('info');return false">← Back to the overview</a></div>`}
     <div class="row noprint" style="margin-top:12px">${tools}</div></div>
   ${flash&&mode==='view'?`<div class="okbox"><b>${ic('check')} ${esc(flash)}</b></div>`:''}
-  ${mode==='view'?viewHtml:submitHtml}`;
+  ${mode==='view'?viewHtml:mode==='submit'?submitHtml:infoHtml}`;
 }
-function setMode(m){ S.ui.testMode=m; if(m==='view') EDIT=null; PEND=''; save(); render(); }
+function setMode(m){ S.ui.testMode=m; if(m!=='submit') EDIT=null; PEND=''; save(); render(); }
 let EDIT=null, PEND='', FLASH='';
 function pend(v){ PEND=v; render(); }
 function editSample(d,k){ EDIT={d,k}; PEND=''; S.ui.testMode='submit'; setTab('tests'); setTimeout(()=>{ const t=S.tests[d][k], np=nameParts(k);
