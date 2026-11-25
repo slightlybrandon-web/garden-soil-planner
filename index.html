@@ -41,6 +41,8 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .muted{color:var(--mute)} .warnbox{background:var(--warn2);border:1px solid #d9b700;border-left:5px solid var(--warn);color:#000;border-radius:8px;padding:8px 12px;margin:6px 0}
 .okbox{background:var(--green2);border:1px solid #b8d0ee;border-radius:8px;padding:8px 12px;margin:6px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.profile{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}.av{width:52px;height:52px;border-radius:50%;background:#14407a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex:none}.pn{font-size:18px;font-weight:650}.chips span{display:inline-block;margin-top:8px;background:#e6edf7;border-radius:99px;padding:4px 12px;font-size:13px;color:#0a1628}.pl{display:block;margin-top:6px}.pl span{display:block;font-size:13px;color:var(--mute)}.pl input,.pl textarea{width:100%;font:inherit}
+.grid.fg{grid-template-columns:repeat(var(--c),minmax(0,1fr));gap:10px}.grid.fg label{align-items:stretch}
 .grid.top{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-top:10px}
 .grid label{display:flex;flex-direction:column;font-size:12px;color:var(--mute)} .grid input{width:100%}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 11px;margin:0 6px 6px 0;background:#fff;cursor:pointer}
@@ -96,7 +98,7 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
   .card,.scroll{overflow-x:auto}
   .btn,button.btn,label.btn{min-height:44px;padding:10px 14px}
   input,select{font-size:16px;min-height:40px}
-  .grid{grid-template-columns:repeat(2,1fr)}.grid.top{grid-template-columns:1fr 1fr}
+  .grid,.grid.fg{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.top{grid-template-columns:1fr 1fr}
   .opt{display:grid!important;grid-template-columns:40px 1fr;column-gap:10px;align-items:center;padding:12px 14px}
   .opt .ic{grid-row:1/3;font-size:28px;margin:0}.opt b,.opt span.d{grid-column:2}
   table.prod .pcon{display:block}table.prod th:nth-child(4),table.prod td:nth-child(4){display:none}
@@ -283,6 +285,7 @@ let S = load() || {
 S.custom = S.custom||[];
 function fixSettings(){ S.settings = Object.assign(clone(E.DEFAULTS), S.settings||{}); for(const k of ['cationFloor','satRange','maxPpm','highPh']) S.settings[k]=Object.assign(clone(E.DEFAULTS[k]), S.settings[k]||{}); }
 fixSettings();
+S.profile = Object.assign({name:'',bio:''}, S.profile||{});
 S.ui = Object.assign({tab:'home',basis:'lim',garden:'G1',sel:['G1','G2'],mixes:{},allowed:{}}, S.ui);
 let COMPS = SEED.compounds;
 function rebuildComps(){ COMPS = SEED.compounds.concat((S.custom||[]).map(c=>({id:c.id,minerals:c.minerals,custom:true,lbPerGal:c.lbPerGal}))); }
@@ -308,7 +311,7 @@ function render(){
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or upload a PDF or photo of the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
   ({privacy:vPrivacy,home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
-  if((S.ui.tab==='settings'||(S.ui.tab==='home'&&!(typeof ACCT!=='undefined'&&ACCT)))&&typeof acctCard==='function'){ const ac=acctCard(); if(ac){ const hero=$('#main .qa')||$('#main .startcard')||$('#main .hero'); if(S.ui.tab==='home'&&hero) hero.insertAdjacentHTML('afterend',ac); else $('#main').insertAdjacentHTML('afterbegin',ac); } }
+  if((S.ui.tab==='settings'||(S.ui.tab==='home'&&!(typeof ACCT!=='undefined'&&ACCT)))&&typeof acctCard==='function'){ const ac=acctCard(); if(ac){ const hero=$('#main .qa')||$('#main .hero'); if(S.ui.tab==='home'&&hero) hero.insertAdjacentHTML('afterend',ac); else $('#main').insertAdjacentHTML('afterbegin',ac); } }
   if(typeof acctChip==='function') acctChip();
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -439,11 +442,12 @@ function vHome(){
   }
   $('#main').innerHTML=`
   <div class="hero"><svg class="heroart" viewBox="0 0 240 170" aria-hidden="true"><defs><linearGradient id="hs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a5ea8"/><stop offset="1" stop-color="#0d2547"/></linearGradient></defs><g stroke="#ffffff" stroke-opacity=".12"><path d="M0 40H240M0 80H240M0 120H240M40 0V170M80 0V170M120 0V170M160 0V170M200 0V170"/></g><rect x="0" y="108" width="240" height="62" fill="url(#hs)" opacity=".9"/><path d="M0 108H240" stroke="#9fc4f2" stroke-width="2"/><path d="M0 132H240M0 152H240" stroke="#9fc4f2" stroke-opacity=".3" stroke-dasharray="4 4"/><g fill="#9fc4f2"><rect x="18" y="70" width="14" height="38" rx="2" opacity=".55"/><rect x="38" y="50" width="14" height="58" rx="2" opacity=".7"/><rect x="58" y="82" width="14" height="26" rx="2" opacity=".55"/><rect x="78" y="62" width="14" height="46" rx="2" opacity=".7"/></g><path d="M12 58H100" stroke="#ffd400" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#9fc4f2" stroke-opacity=".7" fill="none" stroke-width="2" stroke-linecap="round"><path d="M170 108V140M170 120L156 134M170 126L184 142M170 134L162 150"/></g><path d="M170 108V66" stroke="#5fd3b3" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M170 84C150 82 138 70 136 52C156 52 170 64 170 84Z" fill="#5fd3b3"/><path d="M170 72C190 70 204 58 206 40C186 40 170 52 170 72Z" fill="#8be8cd"/></svg>${has
-    ?`<h2>Welcome back 🌱</h2><p>Here's where your soil stands today. Add a new test whenever you get results and watch how it changes.</p>`
+    ?`<h2>Welcome back${S.profile&&S.profile.name?', '+esc(S.profile.name):''} 🌱</h2><p>Here's where your soil stands today. Add a new test whenever you get results and watch how it changes.</p>`
     :`<h2>Welcome! Let's find out what your soil is missing 🌱</h2><p>Bring a soil test and in a few minutes you'll know which minerals are short, what to buy and how much to spread. No experience needed, and every term is explained when you hover over it.</p>
       <div class="hsteps"><span><b>1</b> Add your lab report</span><span><b>2</b> See what's missing</span><span><b>3</b> Get your shopping list</span></div>`}<div class="ticker" aria-hidden="true"><span>TEC</span><span>pH</span><span>Ca</span><span>Mg</span><span>K</span><span>Na</span><span>S</span><span>P</span><span>B</span><span>Fe</span><span>Mn</span><span>Cu</span><span>Zn</span></div></div>
-  ${has?`<div class="qa noprint"><button onclick="startTest()"><span>➕</span>Add a test</button><button onclick="setTab('needs')"><span>📊</span>What's needed</button><button onclick="setTab('mix')"><span>🧮</span>Build a mix</button><button onclick="setTab('plan')"><span>🛒</span>Shopping list</button></div>`:''}
-  ${has?'':`<div class="card startcard"><h2>Ready when you are</h2><p class="sub" style="margin:0 0 12px">Upload a PDF or photo of your lab report, type the numbers in, or import a file. They all start in the same place.</p><button class="btn big" onclick="startTest()">➕ Add your first soil test</button></div>`}
+  <div class="qa noprint">${has
+    ?`<button onclick="startTest()"><span>➕</span>Add a test</button><button onclick="setTab('needs')"><span>📊</span>What's needed</button><button onclick="setTab('mix')"><span>🧮</span>Build a mix</button><button onclick="setTab('plan')"><span>🛒</span>Shopping list</button>`
+    :`<button onclick="startTest()"><span>➕</span>Add a test</button><button onclick="S.ui.testMode='submit';loadExample()"><span>🧪</span>Try example data</button><button onclick="const e=document.querySelector('.learnbox');e.open=true;e.scrollIntoView({behavior:'smooth'})"><span>📘</span>Learn the basics</button><button onclick="const e=document.getElementById('acctcard')||0;e?e.scrollIntoView({behavior:'smooth'}):setTab('settings')"><span>👤</span>Account</button>`}</div>
   ${summary}
   <details class="card learnbox"><summary style="cursor:pointer;font-weight:650">New to soil testing? Start here</summary><p class="sub" style="margin:8px 0">Three short reads that make the numbers make sense.</p>
   <div class="learn">
@@ -857,7 +861,7 @@ function reportHtml(){
 
 /* ---------------- TESTS ---------------- */
 const FIELDS=['TEC','PH','SOMpct','EC','Sulphur','Phosphorous','Calcium','Magnesium','Potassium','Sodium','Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon','LabNo','Depth','OtherBases','ExchH'];
-const FLAB={LabNo:'Lab number',Depth:'Sample depth (inches)',TEC:'TEC',PH:'pH',SOMpct:'Organic matter (%)',EC:'EC',OtherBases:'Other bases (%)',ExchH:'Exchangeable hydrogen (%)'};
+const FLAB={LabNo:'Lab number',Depth:'Depth (inches)',TEC:'TEC',PH:'pH',SOMpct:'Organic matter (%)',EC:'EC',OtherBases:'Other bases (%)',ExchH:'Exch. hydrogen (%)'};
 const FORMORDER=['LabNo','Depth','TEC','PH','SOMpct'].concat(FIELDS.filter(f=>!['LabNo','Depth','TEC','PH','SOMpct'].includes(f)));
 function vTests(){
   const d=S.ui.date, histEl=S.ui.histEl||'Potassium';
@@ -878,12 +882,14 @@ function vTests(){
   <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
   const exampleHtml=dates().length?'':`<div class="card noprint" style="background:#eef4fc"><div class="row"><div><b>Just looking around?</b><div class="tiny muted">Load two sample garden beds to see the report, needs and shopping list. Delete them any time.</div></div><span class="right"><button class="btn alt" onclick="loadExample()">🧪 Try example data</button></span></div></div>`;
   const submitHtml=exampleHtml+`  <div class="card" id="scancard"><h2>⬆️ Upload a lab report</h2>
-    <p class="sub">Upload a PDF or a photo of your lab report. Claude reads the values, and you check them against the paper before they're saved. You can also take a photo with your camera.</p>
+    <p class="sub">Upload a PDF or a photo of your lab report. The values are read for you, and you check them against the paper before they're saved. You can also take a photo with your camera.</p>
     <div class="row"><label class="btn" style="cursor:pointer">Upload PDF or photo<input type="file" accept="image/*,application/pdf,.pdf" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
     <div id="review">${reviewHtml()}</div></div>
   <div class="card" id="editform"><h2>${EDIT?'Edit a saved sample':'Add a new lab report'}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. Same date + garden + bed overwrites.</p>
     <div class="grid top"><label><span>Date</span><input type="date" id="nd" value="${new Date().toISOString().slice(0,10)}"></label><label><span>Garden (number, letter or name)</span><input type="text" id="nn" placeholder="e.g. 1, A or Front" list="gl"></label><label><span>Bed (number, letter or name)</span><input type="text" id="nb" placeholder="e.g. 3, B or Herbs (optional)"></label><label><span>Sample ID</span><input type="text" id="f_SampleID" placeholder="as printed (optional)"></label><datalist id="gl">${[...new Set(allG.map(g=>nameParts(g).g))].map(g=>`<option>${esc(g)}</option>`).join('')}</datalist></div>
-    <div class="grid" style="margin-top:10px">${FORMORDER.map(f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`).join('')}</div>
+    <h3 style="margin:16px 0 6px">Sample details &amp; chemistry</h3><div class="grid fg" style="--c:4">${['LabNo','Depth','TEC','PH','SOMpct','EC','OtherBases','ExchH'].map((f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`)).join('')}</div>
+    <h3 style="margin:16px 0 6px">Main nutrients (ppm)</h3><div class="grid fg" style="--c:6">${['Calcium','Magnesium','Potassium','Sodium','Sulphur','Phosphorous'].map((f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`)).join('')}</div>
+    <h3 style="margin:16px 0 6px">Trace minerals (ppm)</h3><div class="grid fg" style="--c:5">${['Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon'].map((f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="number" step="any" id="f_${f}" style="width:100%"></label>`)).join('')}</div>
     <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>`;
   $('#main').innerHTML=`
   <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${mode==='view'?(dates().length?dates().length+' test date'+(dates().length>1?'s':'')+' on file. Pick a date to see its report.':'No tests yet. Switch to Submit a test to add one.'):'Add a test by scanning your lab report, importing a file, or typing the values in.'}</p></div>
@@ -1063,9 +1069,9 @@ function saveScan(){
 }
 // sync: one shared document holds tests, sizes, settings, mixes
 let pushT=null, lastT=0, synced=false;
-const payload=()=>({info:S.reportInfo||{},custom:S.custom,tests:S.tests,sizes:S.sizes,settings:S.settings,mixes:S.ui.mixes,allowed:S.ui.allowed});
+const payload=()=>({profile:S.profile,info:S.reportInfo||{},custom:S.custom,tests:S.tests,sizes:S.sizes,settings:S.settings,mixes:S.ui.mixes,allowed:S.ui.allowed});
 function schedulePush(){ if(sbOn()&&ACCT&&ACSYNC){ acctPush(); return; } if(!CL.db||!synced) return; clearTimeout(pushT); pushT=setTimeout(async()=>{ try{ lastT=Date.now(); await CL.db.collection('planner').doc('state').set({json:JSON.stringify(payload()),t:lastT}); }catch(e){} },800); }
-function applyRemote(d){ try{ const p=JSON.parse(d.json); S.reportInfo=p.info||{}; S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; fixSettings(); S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} }
+function applyRemote(d){ try{ const p=JSON.parse(d.json); S.profile=Object.assign({name:'',bio:''},p.profile||{}); S.reportInfo=p.info||{}; S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; fixSettings(); S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} }
 function startSync(){
   const ref=CL.db.collection('planner').doc('state');
   const apply=applyRemote;
@@ -1079,7 +1085,7 @@ function startSync(){
 /* ---------------- ACCOUNTS (public site): email + password, data saved per user ---------------- */
 const SB_URL='https://uogncesnakmekfcsgosv.supabase.co', SB_KEY='sb_publishable_9vPI19S6ViKpnwMibuUmqA_cUQf90eH', AK='soilplanner.acct';
 let ACCT=null; try{ ACCT=JSON.parse(localStorage.getItem(AK)||'null'); }catch(e){}
-let ACDEL=false, ACMSG='', ACBUSY=false, ACMODE='in', ACCHOICE=null, ACSYNC=false, ACOUT=false, acT=null;
+let ACPROF=false, ACDEL=false, ACMSG='', ACBUSY=false, ACMODE='in', ACCHOICE=null, ACSYNC=false, ACOUT=false, acT=null;
 const sbOn=()=>!CL.db;
 const hasData=()=>dates().length>0||Object.keys(S.custom||[]).length>0;
 async function sbReq(url,opt){ const r=await fetch(SB_URL+url,opt); let j=null; try{ j=await r.json(); }catch(e){} if(!r.ok) throw new Error((j&&(j.msg||j.error_description||j.message||j.error))||('Error '+r.status)); return j; }
@@ -1089,11 +1095,22 @@ async function ensureTok(){ if(!ACCT) return false; if(Date.now()<ACCT.exp) retu
   try{ setAcct(await sbReq('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHead(),body:JSON.stringify({refresh_token:ACCT.refresh})})); return true; }
   catch(e){ ACCT=null; ACSYNC=false; try{localStorage.removeItem(AK);}catch(_){} ACMSG='Your sign-in expired. Please sign in again; your data is safe in your account.'; render(); return false; } }
 function acctChip(){ const b=document.getElementById('acctchip'); if(!b) return; if(!sbOn()){ b.style.display='none'; return; } b.style.display='';
-  if(ACCT){ b.className='chip in'; b.innerHTML='<span class="dot"></span><span class="em">'+esc(ACCT.email||'')+'</span><span class="si">Signed in</span><span class="st">· '+esc(ACSTAT||'Saved')+'</span>'; b.title='Signed in as '+ACCT.email; }
+  if(ACCT){ b.className='chip in'; b.innerHTML='<span class="dot"></span><span class="em">'+esc((S.profile&&S.profile.name)||ACCT.email||'')+'</span><span class="si">Signed in</span><span class="st">· '+esc(ACSTAT||'Saved')+'</span>'; b.title='Signed in as '+ACCT.email; }
   else { b.className='chip'; b.textContent='👤 Sign in'; b.title='Sign in to save your data to an account'; } }
 let ACSTAT='';
+
+function profSummary(){ const keys=[...new Set(dates().flatMap(d=>Object.keys(S.tests[d])))]; if(!keys.length) return 'No beds yet. Add a soil test and your garden setup appears here.';
+  const g=Object.keys(groupGardens(keys)).length, area=keys.reduce((t,k)=>t+(+S.sizes[k]||0),0);
+  return g+' garden'+(g>1?'s':'')+' · '+keys.length+' bed'+(keys.length>1?'s':'')+(area?' · '+area.toLocaleString()+' sq-ft':'')+' · last test '+fmtDate(dates()[0]); }
+function profHtml(){ const pf=S.profile||{name:'',bio:''}, ini=((pf.name||ACCT.email||'?')[0]||'?').toUpperCase();
+  if(ACPROF) return `<div class="profile"><div class="av">${esc(ini)}</div><div style="flex:1;min-width:220px"><label class="pl"><span>Your name or username</span><input type="text" id="pfName" maxlength="40" value="${esc(pf.name)}" placeholder="e.g. Brandon"></label>
+    <label class="pl"><span>About your garden (optional)</span><textarea id="pfBio" maxlength="300" rows="3" placeholder="e.g. Three raised beds and a front lawn, clay soil, growing vegetables and herbs.">${esc(pf.bio)}</textarea></label>
+    <div class="row" style="margin-top:8px"><button class="btn" onclick="profSave()">Save profile</button><button class="btn alt" onclick="ACPROF=false;render()">Cancel</button></div></div></div>`;
+  return `<div class="profile"><div class="av">${esc(ini)}</div><div style="flex:1;min-width:220px"><div class="pn">${esc(pf.name||'Add your name')}</div><div class="tiny muted">${esc(ACCT.email||'')}</div>
+    ${pf.bio?`<p style="margin:6px 0 0">${esc(pf.bio)}</p>`:''}<div class="chips"><span>${esc(profSummary())}</span></div></div><button class="btn alt" onclick="ACPROF=true;render()">Edit profile</button></div>`; }
+function profSave(){ S.profile={name:($('#pfName').value||'').trim().slice(0,40),bio:($('#pfBio').value||'').trim().slice(0,300)}; ACPROF=false; save(); render(); }
 function acctCard(){ if(!sbOn()) return '';
-  if(ACCT){ return `<div class="card noprint" id="acctcard"><div class="row"><div><h2>☁️ Saved to your account</h2><p class="sub" style="margin:0">Signed in as <b>${esc(ACCT.email||'')}</b>. Everything you add is saved automatically, so you can pick up where you left off on any phone or computer.</p></div>
+  if(ACCT){ return `<div class="card noprint" id="acctcard">${profHtml()}<hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class="row"><div><h2>☁️ Saved to your account</h2><p class="sub" style="margin:0">Everything you add is saved automatically, so you can pick up where you left off on any phone or computer.</p></div>
     <div class="right">${ACDEL?'':''}${ACOUT?`<span class="tiny">This removes your data from this device only; it stays in your account.</span> <button class="btn" onclick="acctSignOut()">Yes, sign out</button> <button class="btn alt" onclick="ACOUT=false;render()">Cancel</button>`:`<button class="btn alt" onclick="ACOUT=true;render()">Sign out</button>`}</div></div>
     <div class="tiny" style="margin-top:10px"><a href="#" onclick="setTab('privacy');return false">Privacy policy</a> · ${ACDEL?`</div><div class="warnbox" style="margin-top:8px"><b>Delete your account?</b> This permanently erases your account and every soil test, bed, product and mix saved in it. It cannot be undone. <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAll()">Download a backup first</button><button class="btn" style="background:#b00020;border-color:#b00020" ${ACBUSY?'disabled':''} onclick="acctDelete()">${ACBUSY?'Deleting…':'Yes, permanently delete my account'}</button><button class="btn alt" onclick="ACDEL=false;render()">Cancel</button></div></div><div class="tiny">`:`<a href="#" onclick="ACDEL=true;ACOUT=false;render();return false">Delete my account</a>`}</div>
     ${ACCHOICE?`<div class="warnbox" style="margin-top:10px"><b>This device already has soil tests, and your account has saved data too.</b><div class="row" style="margin-top:8px"><button class="btn" onclick="acctChoose('cloud')">Use my account's data</button><button class="btn alt" onclick="acctChoose('local')">Keep this device's data (replaces the account copy)</button></div></div>`:''}
