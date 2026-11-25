@@ -102,7 +102,7 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
 <header><h1 style="cursor:pointer" onclick="setTab('home')">🌱 Garden Soil Planner</h1>
 <button id="acctchip" class="chip noprint" onclick="S.ui.tab==='home'?document.getElementById('acctcard')&&document.getElementById('acctcard').scrollIntoView({behavior:'smooth'}):setTab('home')" style="display:none"></button><nav id="nav"></nav></header>
 <main id="main"></main>
-<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser.</footer>
+<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser. · <a href="#" onclick="setTab('privacy');return false">Privacy policy</a></footer>
 
 <script>// Soil recommendation engine. Pure functions, no DOM. Used by the app and by test.js.
 (function (root) {
@@ -296,7 +296,7 @@ function render(){
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')"><span class="ti">${TABICON[k]}</span><span class="tl">${l}</span></button>`).join('');
   if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or upload a PDF or photo of the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
-  ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
+  ({privacy:vPrivacy,home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
   if(['home','settings'].includes(S.ui.tab)&&typeof acctCard==='function'){ const ac=acctCard(); if(ac) $('#main').insertAdjacentHTML('afterbegin',ac); }
   if(typeof acctChip==='function') acctChip();
   try{ glossify($('#main')); }catch(e){}
@@ -380,6 +380,36 @@ function glanceCharts(d,gs){
 const gLab=g=>/^garden\b/i.test(g)?g:'Garden '+g;
 const bLab=b=>/^bed\b/i.test(b)?b:'Bed '+b;
 const nameLabel=k=>{ const n=nameParts(k); return n.b?gLab(n.g)+' · '+bLab(n.b):gLab(n.g); };
+
+function vPrivacy(){
+  $('#main').innerHTML=`<div class="card"><button class="btn alt noprint" onclick="setTab('home')">← Back</button>
+  <h2 style="margin-top:12px;font-size:22px">Privacy policy</h2><p class="tiny muted">Last updated 25 November 2026</p>
+  <h3>The short version</h3>
+  <p>Garden Soil Planner stores the soil information you enter so you can come back to it. We do not sell it, show ads, or use it for tracking. You can download it or delete it at any time.</p>
+  <h3>What we collect</h3>
+  <p><b>If you do not sign in:</b> your soil tests, bed names and sizes, products and mixes are kept only in your own browser (local storage) on your device. Nothing is sent to us.</p>
+  <p><b>If you create an account:</b> we store your email address, your password (kept only as a one-way hash by our sign-in provider, so nobody can read it), and the garden data you enter: soil test values, garden and bed names, bed sizes, products, saved mixes and your settings. Your sign-in provider also keeps routine technical records such as sign-in times and IP addresses for security.</p>
+  <p>We do not ask for payment details, your location, or your contacts. Please do not type anything into garden or bed names that you would not want stored.</p>
+  <h3>How it is used</h3>
+  <p>Only to show you your own data, sync it between your devices, and keep your account secure. It is not used for advertising, profiling or sold to anyone.</p>
+  <h3>Photos and PDFs of lab reports</h3>
+  <p>On this public site, photos and PDFs are read on your own device. The text-reading and PDF-reading tools are downloaded from a public content network (jsDelivr) when you first use them, but your file itself is not uploaded to us and is not kept. Only the values you confirm are saved.</p>
+  <h3>Who handles the data</h3>
+  <p>Account data is stored with Supabase (hosted in the United States, us-east-2). Each person's saved data can be read and changed only by that signed-in person. The site itself is hosted on GitHub Pages. We do not share your data with anyone else, except where the law requires it.</p>
+  <h3>Cookies and tracking</h3>
+  <p>No advertising or analytics cookies. The site uses your browser's local storage to remember your data and your sign-in on that device.</p>
+  <h3>Your choices</h3>
+  <p><b>Download:</b> Soil tests → View my tests → Export backup gives you a copy of your data.<br>
+  <b>Delete:</b> when signed in, Home → "Delete my account" permanently erases your account and everything saved in it. Signing out only removes the data from that device.<br>
+  <b>Clear this browser:</b> Settings → "Clear all my data".</p>
+  <h3>How long we keep it</h3>
+  <p>For as long as your account exists. When you delete your account, the data is erased right away from our database; routine backups held by the provider may take a short while to expire.</p>
+  <h3>Children</h3>
+  <p>This site is not directed to children under 13, and accounts are for adults.</p>
+  <h3>Changes and questions</h3>
+  <p>If this policy changes, the date above will change. Questions or requests: open an issue at <a href="https://github.com/slightlybrandon-web/garden-soil-planner/issues" target="_blank" rel="noopener">github.com/slightlybrandon-web/garden-soil-planner</a>.</p>
+  <p class="tiny muted">Garden Soil Planner gives general guidance based on the book <i>The Ideal Soil</i>. It is not professional agronomic advice; check amounts against your lab report and local rules.</p></div>`;
+}
 function vHome(){
   const ds=dates(), has=ds.length, d=S.ui.date;
   let summary='';
@@ -1050,7 +1080,7 @@ function startSync(){
 /* ---------------- ACCOUNTS (public site): email + password, data saved per user ---------------- */
 const SB_URL='https://uogncesnakmekfcsgosv.supabase.co', SB_KEY='sb_publishable_9vPI19S6ViKpnwMibuUmqA_cUQf90eH', AK='soilplanner.acct';
 let ACCT=null; try{ ACCT=JSON.parse(localStorage.getItem(AK)||'null'); }catch(e){}
-let ACMSG='', ACBUSY=false, ACMODE='in', ACCHOICE=null, ACSYNC=false, ACOUT=false, acT=null;
+let ACDEL=false, ACMSG='', ACBUSY=false, ACMODE='in', ACCHOICE=null, ACSYNC=false, ACOUT=false, acT=null;
 const sbOn=()=>!CL.db;
 const hasData=()=>dates().length>0||Object.keys(S.custom||[]).length>0;
 async function sbReq(url,opt){ const r=await fetch(SB_URL+url,opt); let j=null; try{ j=await r.json(); }catch(e){} if(!r.ok) throw new Error((j&&(j.msg||j.error_description||j.message||j.error))||('Error '+r.status)); return j; }
@@ -1064,7 +1094,8 @@ function acctChip(){ const b=document.getElementById('acctchip'); if(!b) return;
 let ACSTAT='';
 function acctCard(){ if(!sbOn()) return '';
   if(ACCT){ return `<div class="card noprint" id="acctcard"><div class="row"><div><h2>☁️ Saved to your account</h2><p class="sub" style="margin:0">Signed in as <b>${esc(ACCT.email||'')}</b>. Everything you add is saved automatically, so you can pick up where you left off on any phone or computer.</p></div>
-    <div class="right">${ACOUT?`<span class="tiny">This removes your data from this device only; it stays in your account.</span> <button class="btn" onclick="acctSignOut()">Yes, sign out</button> <button class="btn alt" onclick="ACOUT=false;render()">Cancel</button>`:`<button class="btn alt" onclick="ACOUT=true;render()">Sign out</button>`}</div></div>
+    <div class="right">${ACDEL?'':''}${ACOUT?`<span class="tiny">This removes your data from this device only; it stays in your account.</span> <button class="btn" onclick="acctSignOut()">Yes, sign out</button> <button class="btn alt" onclick="ACOUT=false;render()">Cancel</button>`:`<button class="btn alt" onclick="ACOUT=true;render()">Sign out</button>`}</div></div>
+    <div class="tiny" style="margin-top:10px"><a href="#" onclick="setTab('privacy');return false">Privacy policy</a> · ${ACDEL?`</div><div class="warnbox" style="margin-top:8px"><b>Delete your account?</b> This permanently erases your account and every soil test, bed, product and mix saved in it. It cannot be undone. <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAll()">Download a backup first</button><button class="btn" style="background:#b00020;border-color:#b00020" ${ACBUSY?'disabled':''} onclick="acctDelete()">${ACBUSY?'Deleting…':'Yes, permanently delete my account'}</button><button class="btn alt" onclick="ACDEL=false;render()">Cancel</button></div></div><div class="tiny">`:`<a href="#" onclick="ACDEL=true;ACOUT=false;render();return false">Delete my account</a>`}</div>
     ${ACCHOICE?`<div class="warnbox" style="margin-top:10px"><b>This device already has soil tests, and your account has saved data too.</b><div class="row" style="margin-top:8px"><button class="btn" onclick="acctChoose('cloud')">Use my account's data</button><button class="btn alt" onclick="acctChoose('local')">Keep this device's data (replaces the account copy)</button></div></div>`:''}
     ${ACMSG?`<p class="tiny" style="margin:8px 0 0">${esc(ACMSG)}</p>`:''}</div>`; }
   const up=ACMODE==='up';
@@ -1076,7 +1107,7 @@ function acctCard(){ if(!sbOn()) return '';
     <button class="btn alt" onclick="ACMODE='${up?'in':'up'}';ACMSG='';render()">${up?'I already have an account':'New here? Create an account'}</button>
     ${up?'':`<button class="btn alt" onclick="acctReset()">Forgot password</button>`}</div>
     ${ACMSG?`<p class="tiny" style="margin:8px 0 0;color:#0a0f1a"><b>${esc(ACMSG)}</b></p>`:''}
-    <p class="tiny muted" style="margin:8px 0 0">${hasData()?'The soil tests already on this device will be saved to your account when you sign in.':'No account needed to look around; you can sign in any time.'}</p></div>`; }
+    <p class="tiny muted" style="margin:8px 0 0">By creating an account you agree to the <a href="#" onclick="setTab('privacy');return false">privacy policy</a>. ${hasData()?'The soil tests already on this device will be saved to your account when you sign in.':'No account needed to look around; you can sign in any time.'}</p></div>`; }
 function acField(){ return {e:($('#acEmail')||{}).value||'', p:($('#acPw')||{}).value||''}; }
 async function acctGo(){ const {e,p}=acField(); const email=e.trim();
   if(!email||!p){ ACMSG='Enter your email and password.'; render(); return; }
@@ -1108,6 +1139,9 @@ function acctPush(now){ if(!ACCT||!ACSYNC) return; clearTimeout(acT); ACSTAT='Sa
   acT=setTimeout(async()=>{ if(!(await ensureTok())) return; lastT=Date.now();
     try{ await sbReq('/rest/v1/planner_state?on_conflict=user_id',{method:'POST',headers:{...sbHead(ACCT.token),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:ACCT.uid,data:{json:localPayloadJson(),t:lastT},updated_at:new Date().toISOString()})}); ACSTAT='Saved'; }
     catch(err){ ACSTAT='Not saved, check connection'; } acctChip(); },now?50:800); }
+async function acctDelete(){ if(!(await ensureTok())) return; ACBUSY=true; render();
+  try{ await sbReq('/rest/v1/rpc/delete_my_account',{method:'POST',headers:sbHead(ACCT.token),body:'{}'}); ACBUSY=false; ACDEL=false; acctSignOut(); ACMSG='Your account and all its saved data have been deleted.'; render(); }
+  catch(err){ ACBUSY=false; ACMSG='Could not delete the account: '+err.message+'. Please try again.'; render(); } }
 function acctSignOut(){ ACSYNC=false; clearTimeout(acT); ACCT=null; ACOUT=false; ACCHOICE=null; ACMSG='You are signed out. Sign in again to see your data.'; try{localStorage.removeItem(AK);localStorage.removeItem(KEY);}catch(e){}
   S.tests={}; S.sizes={}; S.custom=[]; S.reportInfo={}; S.ui.mixes={}; S.ui.allowed={}; S.ui.units={}; S.ui.lastKey=''; S.ui.carried={}; S.ui.date=null; S.ui.sel=[]; S.ui.view='all'; S.ui.tab='home'; rebuildComps(); mem=clone(S); render(); }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&sbOn()&&ACCT&&ACSYNC&&!pushT&&!acT) acctPull(false); });
