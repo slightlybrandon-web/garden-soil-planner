@@ -498,7 +498,17 @@ function vNeeds(){
 
 /* ---------------- MIX ---------------- */
 const mixKey = () => S.ui.date+'|'+[...S.ui.sel].sort().join(',');
-const curMix = () => (S.ui.mixes[mixKey()] ||= {});
+/* The mix is saved per test date + selected beds. When a selection has no saved mix yet, start from the last one (scaled by area) so nothing seems to vanish. */
+const curMix = () => {
+  const k=mixKey();
+  if(!S.ui.mixes[k]){
+    const prev=S.ui.lastKey&&S.ui.mixes[S.ui.lastKey];
+    if(prev&&Object.keys(prev).length&&S.ui.lastArea>0&&selArea()>0){ const f=selArea()/S.ui.lastArea;
+      S.ui.mixes[k]=Object.fromEntries(Object.entries(prev).map(([id,v])=>[id,+(v*f).toFixed(3)])); (S.ui.carried ||= {})[k]=true; }
+    else S.ui.mixes[k]={};
+  }
+  if(Object.keys(S.ui.mixes[k]).length){ S.ui.lastKey=k; S.ui.lastArea=selArea(); }
+  return S.ui.mixes[k]; };
 const selArea = () => S.ui.sel.reduce((t,g)=>t+size(g),0);
 function needLbs(){
   const d=S.ui.date, tot={}; if(!d||!S.tests[d]) return tot;
@@ -519,9 +529,10 @@ function vMix(){
     <div style="margin-top:10px">${Object.entries(groupGardens(gs)).map(([gn,ks])=>`<div style="margin-bottom:6px">${ks.length>1||nameParts(ks[0]).b?`<b class="tiny">${esc(gLab(gn))}</b> <a class="tiny" href="#" onclick="selGarden('${esc(gn).replace(/'/g,"\\'")}');return false">select whole garden</a><br>`:''}${ks.map(g=>`<label class="chip ${S.ui.sel.includes(g)?'on':''}"><input type="checkbox" ${S.ui.sel.includes(g)?'checked':''} onchange="toggleSel('${esc(g).replace(/'/g,"\\'")}')" hidden>${esc(nameParts(g).b?bLab(nameParts(g).b):gLab(g))}
       <input type="number" value="${size(g)}" step="50" title="sq-ft" onclick="event.stopPropagation()" onchange="S.sizes['${esc(g).replace(/'/g,"\\'")}']=+this.value||0;save();render()" style="width:78px"> <span class="muted tiny">sq-ft</span></label>`).join('')}</div>`).join('')}</div>
     <div class="muted tiny">Selected area: <b id="area">${selArea().toLocaleString()}</b> sq-ft ${selArea()?'':'<span class="pill warn">enter the sq-ft of each selected garden above</span>'}</div></div>
+  ${(S.ui.carried&&S.ui.carried[mixKey()])?`<div class="warnbox noprint">Your last mix was carried over to this selection and scaled to its area. Check the amounts. <button class="btn alt" onclick="keepCarried()">Keep it</button> <button class="btn alt" onclick="clearMix()">Start fresh</button></div>`:''}
   <div id="mixopts">${optionsHtml()}</div>
   <div class="two">
-   <div class="card"><div class="row"><h2>Products</h2><span class="right row noprint"><button class="btn" onclick="showOptions()" title="Compare a few different mixes with the reasons for each">Suggest mix options</button><button class="btn alt" onclick="doRecommend()" title="Pick the best products for the needs, including ones you do not have yet">Quick recommend</button><button class="btn alt" onclick="doSuggest()" title="Use only the products ticked Have">Use only what I have</button><button class="btn alt" onclick="clearMix()">Clear</button></span></div>
+   <div class="card"><div class="row"><h2>Products</h2><span class="right row noprint"><button class="btn" onclick="showOptions()" title="Compare a few different mixes with the reasons for each">Suggest mix options</button><button class="btn alt" onclick="doRecommend()" title="Pick the best products for the needs, including ones you do not have yet">Recommend products</button><button class="btn alt" onclick="doSuggest()" title="Use only the products ticked Have">Use only what I have</button><button class="btn alt" onclick="clearMix()">Clear</button></span></div>
     <div class="row noprint" style="margin:6px 0"><label class="btn alt" style="cursor:pointer">📷 Scan a bottle / bag label<input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label><button class="btn alt" onclick="newProduct()">+ Add by hand</button><span id="labelmsg" class="muted tiny"></span></div>
     <div id="prodreview">${prodReviewHtml()}</div>
     <p class="tiny muted" style="margin:2px 0 6px">Tick “Have” for products you already own. Anything not ticked goes on your shopping list.</p>
@@ -543,7 +554,8 @@ const unitOf=id=>(S.ui.units&&S.ui.units[id])||'oz';
 function toggleHave(id,on){ S.ui.allowed[id]=on; if(!on){ for(const k in S.ui.mixes){ if(k.startsWith(S.ui.date+'|')) delete S.ui.mixes[k][id]; } } save(); render(); }
 function setUnit(id,u){ (S.ui.units ||= {})[id]=u; save(); render(); }
 function setAmt(id,v){ const m=curMix(), oz=unitOf(id)==='oz'; const n=parseFloat(v)/(oz?16:1); const l=document.getElementById('lb_'+id); if(l) l.textContent=n>0?'≈ '+(oz?n.toFixed(2)+' lb':(n*16).toFixed(1)+' oz'):''; if(n>0) m[id]=n; else delete m[id]; save(); renderGap(); }
-function clearMix(){ S.ui.mixes[mixKey()]={}; save(); render(); }
+function keepCarried(){ if(S.ui.carried) delete S.ui.carried[mixKey()]; save(); render(); }
+function clearMix(){ S.ui.mixes[mixKey()]={}; if(S.ui.carried) delete S.ui.carried[mixKey()]; S.ui.lastKey=''; save(); render(); }
 const RECO=['AgSulphur','Pot_Sulfate1','Sul-Po-Mag','EpsomSalts','Gypsum','LimeStone','DolmiteLime','CalPhos','BoneMeal','Borax','Solubor','IronSulphate','Ironite','IronPlus','MangSulfate','CopperSulfate','BioMinCopper','ZincSulphate','SodiumMolybdate'];
 
 /* ---------- Mix options: a few different strategies, each with reasons ---------- */
@@ -828,7 +840,7 @@ const SOURCE={Calcium:'Ideal Soil chart: 68% of TEC (60–85%), 200 ppm per meq'
 let WIPE=false;
 function wipeStep(v){ WIPE=v; render(); }
 function wipeAll(){
-  S.tests={}; S.sizes={}; S.custom=[]; S.reportInfo={}; S.ui.mixes={}; S.ui.allowed={}; S.ui.units={}; S.ui.date=null; S.ui.sel=[]; S.ui.view='all'; S.ui.tab='home'; WIPE=false; OPTS=null; SCAN=null;
+  S.tests={}; S.sizes={}; S.custom=[]; S.reportInfo={}; S.ui.mixes={}; S.ui.allowed={}; S.ui.units={}; S.ui.lastKey=''; S.ui.carried={}; S.ui.date=null; S.ui.sel=[]; S.ui.view='all'; S.ui.tab='home'; WIPE=false; OPTS=null; SCAN=null;
   rebuildComps(); save(); render();
 }
 function vSettings(){
