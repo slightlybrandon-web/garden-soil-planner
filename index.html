@@ -45,7 +45,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .seg{display:inline-flex;border:1px solid var(--green);border-radius:8px;overflow:hidden}
 .seg button{border:0;background:#fff;color:var(--green);padding:6px 12px;font:inherit;cursor:pointer}.seg button.on{background:var(--green);color:#fff}
 .hero{background:linear-gradient(135deg,#0a1628,#14407a);color:#fff;border-radius:14px;padding:26px 26px 22px;margin-bottom:18px}
-.hero h2{font-size:26px;margin:0 0 6px;font-weight:700} .hero p{margin:0;color:#d4e4f8;max-width:640px;font-size:16px}
+.hero h2{font-size:28px;margin:0 0 6px;font-weight:700} .hero p{margin:0;color:#d4e4f8;max-width:640px;font-size:16px}
 .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:8px 0 18px}
 .opt{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:.12s}
 .opt:hover{border-color:var(--green);box-shadow:0 2px 10px rgba(20,64,122,.18);transform:translateY(-1px)}
@@ -57,6 +57,9 @@ details.gd{padding:0}details.gd>summary{cursor:pointer;padding:12px 14px;display
 table.needs td,table.needs th{text-align:center}table.needs td:first-child,table.needs th:first-child{text-align:left}
 .gl{display:grid;grid-template-columns:110px 1fr 56px;gap:4px 10px;align-items:center;margin:2px 0}.gtrack{position:relative;height:14px;background:#e3ebf6;border-radius:7px}.gfill{position:absolute;left:0;top:0;height:100%;border-radius:7px}.gmark{position:absolute;top:-3px;width:2px;height:20px;background:#0a0f1a}.gdot{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;border:2px solid #0a0f1a}.gband{position:absolute;top:0;height:100%;background:rgba(31,111,209,.28)}.glab{font-size:13px;color:#000}.gval{font-size:12px;color:#000;text-align:right;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#000;margin:6px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{border:1px solid #9fb0c8;padding:5px 8px}table.rep td{text-align:right;color:#000}table.rep td.rl{text-align:left;font-weight:500;background:#f5f8fc}table.rep td.ru{text-align:left;font-size:12px;color:#000;background:#f5f8fc}table.rep th.rs{width:34px;padding:0;background:#dfe8f5;text-transform:uppercase;font-size:11px;color:#0a0f1a}table.rep th.rs span,table.rep th.rs{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}table.rep th.sh{background:#0a1628;color:#fff;text-align:center;font-size:14px;text-transform:none}table.rep th.sh.sub{background:#14407a}table.rep td.out{background:#fff4b8;font-weight:700}table.rep b.short{background:#ffd400;padding:1px 6px;border-radius:5px;color:#000}
+.glt th{text-align:left}.gbar{height:12px;background:#e3ebf6;border-radius:6px;overflow:hidden}.gbar i{display:block;height:100%;background:var(--ok);border-radius:6px}.gtxt{font-size:12px;color:#000}.glo{margin:4px 0 0 20px;padding:0;color:#000}.glo li{margin:3px 0}
+.hsteps{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hsteps span{background:rgba(255,255,255,.14);border-radius:99px;padding:6px 14px;font-size:14px}.hsteps b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffd400;color:#0a0f1a;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
+.learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
 .tiny{font-size:12px} .right{margin-left:auto}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
@@ -310,9 +313,9 @@ const dateSelect = () => `<select onchange="S.ui.date=this.value;save();render()
 const basisSeg = () => `<span class="seg"><button class="${S.ui.basis==='tec'?'on':''}" onclick="S.ui.basis='tec';save();render()" title="tecOz: ounces to reach the ideal target">Ideal target</button><button class="${S.ui.basis==='lim'?'on':''}" onclick="S.ui.basis='lim';save();render()" title="limOz: ounces to reach the target or the minimum floor, whichever is larger">Target + minimum</button></span>`;
 
 /* ---------------- HOME ---------------- */
-const EXAMPLE={date:'20250401',rows:{'Bed A':{TEC:8.2,PH:6.5,SOMpct:3.8,Sulphur:12,Phosphorous:95,Calcium:1180,Magnesium:140,Potassium:62,Sodium:20,Boron:0.4,Iron:38,Manganese:14,Copper:1.1,Zinc:6.2,Aluminium:420,Cobalt:0.03,Molybdenum:0.05,Selenium:0.1},
-  'Bed B':{TEC:5.4,PH:6.1,SOMpct:2.6,Sulphur:9,Phosphorous:48,Calcium:640,Magnesium:78,Potassium:34,Sodium:14,Boron:0.3,Iron:24,Manganese:6,Copper:0.7,Zinc:3.1,Aluminium:300,Cobalt:0.02,Molybdenum:0.03,Selenium:0.08}}};
-function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['Bed A']=S.sizes['Bed A']||400; S.sizes['Bed B']=S.sizes['Bed B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['Bed A','Bed B']; S.ui.garden='Bed A'; save(); setTab('needs'); }
+const EXAMPLE={date:'20250401',rows:{'1 / A':{TEC:8.2,PH:6.5,SOMpct:3.8,Sulphur:12,Phosphorous:95,Calcium:1180,Magnesium:140,Potassium:62,Sodium:20,Boron:0.4,Iron:38,Manganese:14,Copper:1.1,Zinc:6.2,Aluminium:420,Cobalt:0.03,Molybdenum:0.05,Selenium:0.1},
+  '1 / B':{TEC:5.4,PH:6.1,SOMpct:2.6,Sulphur:9,Phosphorous:48,Calcium:640,Magnesium:78,Potassium:34,Sodium:14,Boron:0.3,Iron:24,Manganese:6,Copper:0.7,Zinc:3.1,Aluminium:300,Cobalt:0.02,Molybdenum:0.03,Selenium:0.08}}};
+function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['1 / A']=S.sizes['1 / A']||400; S.sizes['1 / B']=S.sizes['1 / B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['1 / A','1 / B']; S.ui.garden='1 / A'; save(); setTab('needs'); }
 
 /* ---------- Home "at a glance" charts ---------- */
 function glanceCharts(d,gs){
@@ -345,15 +348,23 @@ function vHome(){
   const ds=dates(), has=ds.length, d=S.ui.date;
   let summary='';
   if(has){
-    const gs=gardensOf(d), cnt={}; let low=0;
-    gs.forEach(g=>{ const a=E.analyze(S.tests[d][g],S.settings); for(const el of EL) if(a[el]&&a[el].limOz>0) cnt[el]=(cnt[el]||0)+1; if(S.tests[d][g].TEC<S.settings.lowCec) low++; });
-    const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    summary=`<div class="card"><h2>Your garden at a glance</h2><p class="sub">Latest test: <b>${fmtDate(d)}</b> · ${gs.length} garden${gs.length>1?'s':''}${low?` · ${low} low-CEC`:''}</p>
-      ${top.length?`<div>${top.map(([el,n])=>`<span class="stat"><b>${n} of ${gs.length}</b>need ${el.toLowerCase()}</span>`).join('')}</div>`:'<div class="okbox">Nothing needed — every mineral meets its target.</div>'}
-      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>${glanceCharts(d,gs)}`;
+    const gs=gardensOf(d), an=Object.fromEntries(gs.map(g=>[g,E.analyze(S.tests[d][g],S.settings)]));
+    const rank=rankNeeds(gs,an), lowTec=gs.filter(g=>S.tests[d][g].TEC<S.settings.lowCec);
+    const rows=gs.map(g=>{ const a=an[g]; let n=0,ok=0; const gaps=[];
+      for(const el of EL){ const x=a[el]; if(!x||!x.target||TRACE_SKIP.includes(el)) continue; n++; if(!(x.limOz>0)&&!x.high) ok++; else if(x.limOz>0&&!x.high) gaps.push([el,(x.target-x.found)/x.target]); }
+      gaps.sort((p,q)=>q[1]-p[1]);
+      return `<tr><td style="text-align:left"><b>${esc(nameLabel(g))}</b></td><td style="text-align:left;min-width:190px"><div class="gbar"><i style="width:${n?ok/n*100:0}%"></i></div><span class="gtxt">${ok} of ${n} minerals on target</span></td><td style="text-align:left;color:#000">${gaps.length?esc(gaps.slice(0,3).map(x=>x[0]).join(', '))+(gaps.length>3?' and '+(gaps.length-3)+' more':''):'None'}</td></tr>`; }).join('');
+    summary=`<div class="card"><h2>Your garden at a glance</h2><p class="sub">Soil test of <b>${fmtDate(d)}</b> · ${gs.length} bed${gs.length>1?'s':''}. Each mineral is compared with its ideal target for that soil.</p>
+      <table class="glt"><tr><th>Bed</th><th>How many minerals are on target</th><th>Biggest gaps</th></tr>${rows}</table>
+      ${rank.length?`<h3>What to fix first</h3><ol class="glo">${rank.slice(0,4).map(r=>`<li><b>${r.el}</b> is short in ${r.n} of ${gs.length} bed${gs.length>1?'s':''}, at about ${Math.round((1-r.sev)*100)}% of its target.</li>`).join('')}</ol>`:'<div class="okbox">Every mineral meets its target. Nothing to add.</div>'}
+      ${lowTec.length?`<p class="tiny" style="color:#000;margin:6px 0 0"><b>Note:</b> ${lowTec.length===gs.length?'These beds hold':'Some beds hold'} nutrients weakly (low TEC, a sandy soil). The book suggests smaller amounts applied more often.</p>`:''}
+      <div class="row noprint" style="margin-top:10px"><button class="btn" onclick="setTab('needs')">See how much to add →</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">Shopping list</button></div></div>${glanceCharts(d,gs)}`;
   }
   $('#main').innerHTML=`
-  ${has?'':`<div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>`}
+  <div class="hero">${has
+    ?`<h2>Welcome back 🌱</h2><p>Here's where your soil stands today. Add a new test whenever you get results and watch how it changes.</p>`
+    :`<h2>Welcome! Let's find out what your soil is missing 🌱</h2><p>Bring a soil test and in a few minutes you'll know which minerals are short, what to buy and how much to spread. No experience needed, and every term is explained when you hover over it.</p>
+      <div class="hsteps"><span><b>1</b> Add your lab report</span><span><b>2</b> See what's missing</span><span><b>3</b> Get your shopping list</span></div>`}</div>
   <h2 style="margin:4px 0">${has?'What would you like to do?':'Choose how to start'}</h2>
   <div class="opts">
     <label class="opt"><span class="ic">📷</span><b>Scan a lab report</b><span class="d">Take a photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
@@ -364,6 +375,13 @@ function vHome(){
   </div>
   ${summary}
   <div class="card" id="scancard" style="display:${(SCAN||PSCAN)?'block':'none'}"><span id="scanmsg" class="muted"></span><div id="review">${reviewHtml()}</div><span id="labelmsg" class="muted tiny"></span><div id="prodreview">${prodReviewHtml()}</div></div>
+  <h2 style="margin:18px 0 4px">New to soil testing? Start here</h2>
+  <p class="sub" style="margin:0 0 8px">Three short reads that make the numbers make sense. Tap one to open it.</p>
+  <div class="learn">
+    <details><summary>What is TEC, and why does everything depend on it?</summary><p>TEC (total exchange capacity) is how much nutrient your soil can hold on to. Clay soils hold a lot and sandy soils hold little. The book's targets are set as a share of that capacity, so a bed with a bigger TEC needs more of each mineral than one with a smaller TEC.</p></details>
+    <details><summary>Why does the balance of calcium, magnesium, potassium and sodium matter?</summary><p>These four share the soil's holding capacity. The Ideal Soil aims for about 68% calcium, 12% magnesium, 4% potassium and 1.5% sodium. Too much of one crowds out the others, which is why the app looks at the shares and not only at each number.</p></details>
+    <details><summary>How do ppm turn into ounces for my bed?</summary><p>One ppm in the top six to seven inches of soil works out to about 2 pounds per acre. The app takes the gap between what the lab found and the target, converts it to pounds of the mineral, then to pounds of each product using its label percentages, and scales that to your square footage.</p></details>
+  </div>
   <div class="card"><h2>How it works</h2><div class="steps" style="margin-top:8px">
     <div class="step"><i>1</i><b>Add a soil test</b><div class="tiny muted">Scan, type or import your lab results (ppm values and TEC).</div></div>
     <div class="step"><i>2</i><b>See what's needed</b><div class="tiny muted">Each garden's shortfalls in oz per sq-ft, against the book's targets.</div></div>
