@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Garden Soil Planner</title>
 <style>
-:root{--bg:#eef2f8;--card:#ffffff;--ink:#0a0f1a;--mute:#566176;--line:#d2dae7;--green:#14407a;--green2:#e0ecfa;
+:root{--bg:#eef2f8;--card:#ffffff;--ink:#0a0f1a;--mute:#27324a;--line:#d2dae7;--green:#14407a;--green2:#e0ecfa;
 --warn:#ffd400;--warn2:#fff4b8;--warnink:#4a3b00;--low:#9ec1ea;--ok:#1f6fd1;--r:10px}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 header{background:#0a1628;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 header .chip{margin-left:auto;order:2;background:#1b3a66;color:#fff;border:0;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;max-width:55vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header .chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffd400;margin-right:7px;vertical-align:middle}header .chip .si{display:none}header .chip .em{margin-right:6px}header .chip .st{opacity:.85}
@@ -29,13 +29,13 @@ button.btn.alt{background:#fff;color:var(--green)} button.btn.danger{background:
 label.btn{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--green);background:#fff;color:var(--green);display:inline-block;cursor:pointer}
 button.btn:hover{filter:brightness(.95)}
 table{border-collapse:collapse;width:100%} th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
-th{font-weight:600;color:var(--mute);font-size:12.5px;text-transform:uppercase;letter-spacing:.4px}
+th{font-weight:650;color:#1d2840;font-size:13px;text-transform:uppercase;letter-spacing:.4px}
 th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.6px;text-align:left}
 .scroll{overflow-x:auto}
 .pill{white-space:nowrap;display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;background:var(--green2);color:var(--green)}
 .pill.warn{background:var(--warn);color:var(--warnink);font-weight:600} .pill.low{background:#cfe1f6;color:#0f2f5c}
 .cell{border-radius:5px;padding:2px 6px;display:inline-block;min-width:58px}
-.zero{color:#9aa5b8}
+.zero{color:#4a566b}
 .bar{height:9px;background:#dde6f2;border-radius:5px;overflow:hidden;min-width:110px;position:relative}
 .bar i{display:block;height:100%;background:var(--ok)} .bar i.over{background:var(--warn);box-shadow:inset 0 0 0 1px #0a0f1a}
 .muted{color:var(--mute)} .warnbox{background:var(--warn2);border:1px solid #d9b700;border-left:5px solid var(--warn);color:#000;border-radius:8px;padding:8px 12px;margin:6px 0}
@@ -52,7 +52,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .pick button{display:flex;align-items:center;gap:12px;text-align:left;padding:16px 18px;border:2px solid #b9c8dc;border-radius:12px;background:#fff;color:var(--green);font:inherit;cursor:pointer}
 .pick button:hover{border-color:var(--green)}
 .pick button.on{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 3px 10px rgba(16,40,80,.25)}
-.pick .pi{font-size:28px}.pick b{display:block;font-size:18px}.pick small{display:block;opacity:.8;font-size:13px;margin-top:2px}
+.pick .pi{font-size:28px}.pick b{display:block;font-size:18px}.pick small{display:block;opacity:.95;font-size:13px;margin-top:2px}
 @media(max-width:560px){.pick{grid-template-columns:1fr}}
 .seg{display:inline-flex;border:1px solid var(--green);border-radius:8px;overflow:hidden}
 .seg button{border:0;background:#fff;color:var(--green);padding:6px 12px;font:inherit;cursor:pointer}.seg button.on{background:var(--green);color:#fff}
@@ -86,8 +86,10 @@ table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{b
 .hsteps{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hsteps span{background:rgba(255,255,255,.14);border-radius:99px;padding:6px 14px;font-size:14px}.hsteps b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffd400;color:#0a0f1a;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
 .learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
-.tiny{font-size:12px} .right{margin-left:auto}
+.tiny{font-size:13.5px} .right{margin-left:auto}
 
+input::placeholder,textarea::placeholder{color:#5b667a;opacity:1}
+label>span{font-weight:550;color:#1d2840}.step .muted,.opt span.d,.ltips li{color:#0a0f1a}.step .muted{color:#1d2840}
 .ic{width:1.15em;height:1.15em;vertical-align:-.22em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.logo .ic{width:26px;height:26px;color:#5fd3b3;vertical-align:-6px}
 .qa button span .ic{width:28px;height:28px}.pick .pi .ic{width:32px;height:32px}header .chip .ic{width:15px;height:15px;vertical-align:-3px}.warnbox .ic{color:#7a5c00}
 .ti{display:none}.pcon{display:none;color:var(--mute);font-weight:400}
@@ -803,7 +805,7 @@ const buyLink=id=>/^https:\/\//.test(BUY_LINKS[id]||'')?`<a href="${esc(BUY_LINK
 async function printRecipe(sel,fname){
   const card=document.querySelector(typeof sel==='string'?sel:'#main .card'); if(!card) return;
   const clone=card.cloneNode(true); clone.querySelectorAll('.noprint,button').forEach(n=>n.remove());
-  const html='<!doctype html><meta charset="utf-8"><title>Soil recipe</title><style>body{font:14px system-ui,sans-serif;max-width:800px;margin:20px auto;padding:0 12px;color:#0a0f1a}table{border-collapse:collapse;width:100%;margin:6px 0 14px}th,td{border-bottom:1px solid #ccc;padding:4px 8px;text-align:left}h2{margin:0}h3{margin:16px 0 4px}.muted,.tiny{color:#666;font-size:12px}.warnbox{border:1px solid #d9b700;background:#fff4b8;padding:6px}abbr{text-decoration:none}@media print{.hint{display:none}}</style><p class="hint muted">Open this file in your browser and choose Print → Save as PDF.</p>'+clone.innerHTML;
+  const html='<!doctype html><meta charset="utf-8"><title>Soil recipe</title><style>body{font:14px system-ui,sans-serif;max-width:800px;margin:20px auto;padding:0 12px;color:#0a0f1a}table{border-collapse:collapse;width:100%;margin:6px 0 14px}th,td{border-bottom:1px solid #ccc;padding:4px 8px;text-align:left}h2{margin:0}h3{margin:16px 0 4px}.muted,.tiny{color:#333;font-size:12px}.warnbox{border:1px solid #d9b700;background:#fff4b8;padding:6px}abbr{text-decoration:none}@media print{.hint{display:none}}</style><p class="hint muted">Open this file in your browser and choose Print → Save as PDF.</p>'+clone.innerHTML;
   try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:fname||'soil-recipe.html',data:html}); return; } } }catch(e){ return; }
   window.print();
 }
