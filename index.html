@@ -130,7 +130,7 @@ label>span{font-weight:550;color:#1d2840}.step .muted,.opt span.d,.ltips li{colo
 }
 @media print{nav{position:static}}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
-.calc{font-style:italic;color:#444}</style>
+.calc{font-style:italic;color:#444}.fg input.auto{font-style:italic;background:#eef3fa;color:#34405a}.fg label.auto>span::after{content:' · auto';font-style:italic;font-weight:600;color:#0a3d91}.notebox{background:#eef3fa;border-left:4px solid #0a3d91;padding:8px 12px;border-radius:6px;font-size:14px;line-height:1.45}</style>
 </head>
 <body>
 <header><h1 style="cursor:pointer" onclick="setTab('home')"><span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9"/><path d="M12 12C12 8 9 6 5 6c0 4 3 6 7 6z"/><path d="M12 14c0-3.5 2.5-6 7-6 0 3.5-2.5 6-7 6z"/></svg></span> Garden Soil Planner</h1>
@@ -925,6 +925,23 @@ const FLAB={LabNo:'Lab number',Depth:'Depth (inches)',TEC:'TEC',PH:'pH',SOMpct:'
 function parseVal(x){ const t=String(x==null?'':x).trim().replace(',','.'); if(!t) return null; const lt=/^[<≤]/.test(t); const n=parseFloat(t.replace(/^[<>≤≥~\s]+/,'')); return isNaN(n)?null:{n,lt}; }
 function readVals(get){ const row={}; for(const f of FIELDS){ const v=parseVal(get(f)); if(v){ row[f]=v.n; if(v.lt) (row._lt ||= {})[f]=1; } } return row; }
 const INP=f=>`<label><span>${FLAB[f]||f}${f==='TEC'?' *':''}</span><input type="text" inputmode="decimal" autocomplete="off" id="f_${f}" style="width:100%" placeholder="${/^Def/.test(f)?'e.g. -120':''}"></label>`;
+const AUTOF=['DesCa','DefCa','DesMg','DefMg','DesK','DefK','SatCa','SatMg','SatK','SatNa'];
+/* work out what the lab would print from TEC + ppm; anything the person types over stays as typed */
+function autoCalc(ev){
+  const el=ev&&ev.target; if(el&&el.id&&el.id.startsWith('f_')){ const f=el.id.slice(2); if(AUTOF.includes(f)){ el.dataset.m=el.value.trim()?'1':''; } }
+  const g=f=>{ const x=$('#f_'+f); const v=x?parseVal(x.value):null; return v?v.n:undefined; };
+  const row={TEC:g('TEC')}; for(const e of ['Calcium','Magnesium','Potassium','Sodium','Sulphur','Phosphorous','Boron','Iron','Manganese','Copper','Zinc','Aluminium']) row[e]=g(e);
+  let an={}; if(row.TEC>0){ try{ an=E.analyze(row,S.settings)||{}; }catch(e){ an={}; } }
+  const ppm=S.settings.ppmPerMeq, out={};
+  for(const [e,D,F,Sx] of [['Calcium','DesCa','DefCa','SatCa'],['Magnesium','DesMg','DefMg','SatMg'],['Potassium','DesK','DefK','SatK'],['Sodium',null,null,'SatNa']]){
+    const found=row[e]; let des;
+    if(D&&an[e]&&row.TEC>0){ const a=an[e]; des=Math.floor(Math.max(a.target,S.settings.useCationFloors&&a.floor?a.floor:0)); out[D]=des; }
+    if(D){ const dv=g(D)!==undefined&&$('#f_'+D).dataset.m==='1'?g(D):des; out[F]=(found!==undefined&&dv!==undefined&&found<dv)?Math.round(found-dv):''; }
+    out[Sx]=(found!==undefined&&row.TEC>0)?+(found/(ppm[e]*row.TEC)*100).toFixed(2):'';
+  }
+  for(const f of AUTOF){ const x=$('#f_'+f); if(!x) continue; if(x.dataset.m!=='1'){ x.value=out[f]===undefined?'':out[f]; } x.classList.toggle('auto',x.dataset.m!=='1'&&x.value!==''); x.closest('label').classList.toggle('auto',x.dataset.m!=='1'&&x.value!==''); }
+}
+function autoReset(){ for(const f of AUTOF){ const x=$('#f_'+f); if(x){ x.dataset.m=''; } } autoCalc(); }
 function shown(t,f){ return t[f]===undefined?'':((t._lt&&t._lt[f])?'<':'')+t[f]; }
 const FORMORDER=['LabNo','Depth','TEC','PH','SOMpct'].concat(FIELDS.filter(f=>!['LabNo','Depth','TEC','PH','SOMpct'].includes(f)));
 function vTests(){
@@ -952,12 +969,13 @@ function vTests(){
   <div class="card" id="reportdraft"><h2>${EDIT?'Report date':'Your lab report'}</h2><p class="sub" style="margin:0 0 8px">${EDIT?'Change the date if this sample belongs to another test date.':'One lab report can hold many gardens and beds. Give it a title and date once, then add each sample from it below.'}</p>
     <div class="grid top" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"><label><span>Date of the report</span><input type="date" id="nd" ${(!EDIT&&DRAFT.added.length)?'disabled title="The date is fixed once you have added a sample to this report"':''} value="${esc(DRAFT.date||new Date().toISOString().slice(0,10))}"></label>${EDIT?'':`<label><span>Report title (optional)</span><input type="text" id="rt" maxlength="60" placeholder="e.g. Logan Labs, fall 2026" value="${esc(DRAFT.title||'')}"></label>`}</div>
     ${EDIT?'':`<div style="margin-top:10px">${DRAFT.added.length?`<b>${DRAFT.added.length} sample${DRAFT.added.length>1?'s':''} in this report so far:</b> ${DRAFT.added.map(k=>`<span class="pill" style="background:#e6edf7;color:#0a0f1a;margin:2px">${ic('check')} ${esc(nameLabel(k))}</span>`).join('')}`:'<span class="muted">No samples added yet. Fill in the first one below.</span>'}</div>`}</div>
-  <div class="card" id="editform"><h2>${EDIT?'Edit a saved sample':'Sample '+(DRAFT.added.length+1)}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. The same date + garden + bed overwrites.</p>
+  <div class="card" id="editform" oninput="autoCalc(event)"><h2>${EDIT?'Edit a saved sample':'Sample '+(DRAFT.added.length+1)}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. The same date + garden + bed overwrites.</p>
     <div class="grid top" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"><label><span>Garden (number, letter or name)</span><input type="text" id="nn" placeholder="e.g. 1, A or Front" list="gl"></label><label><span>Bed (number, letter or name)</span><input type="text" id="nb" placeholder="e.g. 3, B or Herbs (optional)"></label><label><span>Sample ID</span><input type="text" id="f_SampleID" placeholder="as printed (optional)"></label><datalist id="gl">${[...new Set(allG.map(g=>nameParts(g).g))].map(g=>`<option>${esc(g)}</option>`).join('')}</datalist></div>
     <h3 style="margin:16px 0 6px">Sample details &amp; chemistry</h3><div class="grid fg" style="--c:4">${['LabNo','Depth','TEC','PH','SOMpct','EC'].map(INP).join('')}</div>
-    <h3 style="margin:16px 0 6px">Anions and sodium (ppm, as printed)</h3><div class="grid fg" style="--c:6">${['Sulphur','Phosphorous','Sodium'].map(INP).join('')}</div>
-    <h3 style="margin:16px 0 6px">Calcium, magnesium, potassium (ppm, as printed)</h3><p class="tiny muted" style="margin:0 0 6px">Copy the three lines the lab prints for each: Desired Value, Value Found, Deficit. Leave Desired or Deficit empty if your report does not print them, and the report will calculate them for you.</p><div class="grid fg" style="--c:3">${['DesCa','Calcium','DefCa','DesMg','Magnesium','DefMg','DesK','Potassium','DefK'].map(INP).join('')}</div>
-    <h3 style="margin:16px 0 6px">Base saturation % (as printed)</h3><div class="grid fg" style="--c:6">${['SatCa','SatMg','SatK','SatNa','OtherBases','ExchH'].map(INP).join('')}</div>
+    <div class="notebox" style="margin-top:12px"><b>Filled in for you.</b> Once you enter TEC and the ppm values, these are worked out automatically and shown in <i>italics</i> with an <b>auto</b> tag: <b>Desired</b> and <b>Deficit</b> for calcium, magnesium and potassium, and the <b>Base saturation %</b> for Ca, Mg, K and Na (using your target settings). Not calculated: Other bases and exchangeable hydrogen. To use the lab's printed number instead, just type over it; clear the box to go back to automatic. Only numbers you type are saved as the lab's figures; the rest stay calculated. <a href="#" onclick="autoReset();return false">Reset all to automatic</a></div>
+    <h3 style="margin:16px 0 6px">Anions and sodium (ppm)</h3><div class="grid fg" style="--c:6">${['Sulphur','Phosphorous','Sodium'].map(INP).join('')}</div>
+    <h3 style="margin:16px 0 6px">Calcium, magnesium, potassium (ppm)</h3><p class="tiny muted" style="margin:0 0 6px">Type Value Found from the report. Desired and Deficit fill in automatically; type over them only if your report shows something different.</p><div class="grid fg" style="--c:3">${['DesCa','Calcium','DefCa','DesMg','Magnesium','DefMg','DesK','Potassium','DefK'].map(INP).join('')}</div>
+    <h3 style="margin:16px 0 6px">Base saturation %</h3><div class="grid fg" style="--c:6">${['SatCa','SatMg','SatK','SatNa','OtherBases','ExchH'].map(INP).join('')}</div>
     <h3 style="margin:16px 0 6px">Trace minerals (ppm)</h3><div class="grid fg" style="--c:5">${['Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon'].map(INP).join('')}</div>
     <div class="row" style="margin-top:12px">${EDIT?`<button class="btn" onclick="addTest()">Save changes</button>`:`<button class="btn" onclick="addTest(true)">${ic('plus')} Save &amp; add another sample</button><button class="btn alt" onclick="addTest()">Save &amp; finish</button>`}<span id="addmsg" class="muted"></span></div></div>`;
   const infoHtml=`<div class="qa qa5 noprint"><button onclick="setMode('view')"><span>${ic('clip')}</span>View my tests${nT?` <small>(${nT})</small>`:''}</button><button onclick="setMode('submit')"><span>${ic('plus')}</span>Submit a test</button><button onclick="downloadTemplate()"><span>${ic('book')}</span>Download template</button><label><span>${ic('upload')}</span>Import a file<input type="file" accept=".csv,.xml,.json" hidden onchange="importAny(this.files[0]);this.value=''"></label>${nT?`<button onclick="exportAll()"><span>${ic('cloud')}</span>Export backup</button>`:`<button onclick="loadExample()"><span>${ic('flask')}</span>Try example data</button>`}</div>
@@ -1001,7 +1019,7 @@ function pend(v){ PEND=v; render(); }
 function editSample(d,k){ EDIT={d,k}; PEND=''; S.ui.testMode='submit'; setTab('tests'); setTimeout(()=>{ const t=S.tests[d][k], np=nameParts(k);
     const y=d.slice(0,4), mo=d.slice(4,6)==='00'?'01':d.slice(4,6), da=d.slice(6,8)==='00'||!d.slice(6,8)?'01':d.slice(6,8);
     $('#nd').value=`${y}-${mo}-${da}`; $('#nn').value=np.g; $('#nb').value=np.b;
-    for(const f of FIELDS) $('#f_'+f).value=shown(t,f); $('#f_SampleID').value=t.SampleID||'';
+    for(const f of FIELDS){ const x=$('#f_'+f); x.value=shown(t,f); if(AUTOF.includes(f)) x.dataset.m=t[f]!==undefined?'1':''; } autoCalc(); $('#f_SampleID').value=t.SampleID||'';
     const el=document.getElementById('editform'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },60); }
 function cancelEdit(){ EDIT=null; render(); }
 function delSample(d,k){ delete S.tests[d][k]; if(!Object.keys(S.tests[d]).length) delete S.tests[d];
@@ -1009,7 +1027,7 @@ function delSample(d,k){ delete S.tests[d][k]; if(!Object.keys(S.tests[d]).lengt
 function addTest(more){
   const dt=$('#nd').value.replace(/-/g,''), nm=keyOf($('#nn').value,($('#nb')||{}).value), row={};
   if(!dt||!nm){ $('#addmsg').textContent='Need a date and a garden (bed is optional).'; return; }
-  Object.assign(row,readVals(f=>$('#f_'+f).value));
+  Object.assign(row,readVals(f=>(AUTOF.includes(f)&&$('#f_'+f).dataset.m!=='1')?'':$('#f_'+f).value));
   const sid=$('#f_SampleID').value.trim(); if(sid) row.SampleID=sid;
   if(!row.TEC){ $('#addmsg').textContent='TEC is required — every target is based on it.'; return; }
   const ttl=(($('#rt')||{}).value||'').trim(); if(ttl){ (S.reportInfo ||= {})[dt]=Object.assign(S.reportInfo[dt]||{},{lab:ttl}); }
