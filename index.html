@@ -55,6 +55,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 details.gd{padding:0}details.gd>summary{cursor:pointer;padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;list-style:none}details.gd>summary::-webkit-details-marker{display:none}details.gd>summary:before{content:'▸';color:var(--green)}details.gd[open]>summary:before{content:'▾'}details.gd>*:not(summary){margin-left:14px;margin-right:14px}details.gd>.scroll{margin-bottom:12px}.sumneeds{margin-left:auto}th.gh{text-align:center;background:var(--green2);border-bottom:2px solid var(--green)}
 table.needs td,table.needs th{text-align:center}table.needs td:first-child,table.needs th:first-child{text-align:left}
 .gl{display:grid;grid-template-columns:110px 1fr 56px;gap:4px 10px;align-items:center;margin:2px 0}.gtrack{position:relative;height:14px;background:#e3ebf6;border-radius:7px}.gfill{position:absolute;left:0;top:0;height:100%;border-radius:7px}.gmark{position:absolute;top:-3px;width:2px;height:20px;background:#0a0f1a}.gdot{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;border:2px solid #0a0f1a}.gband{position:absolute;top:0;height:100%;background:rgba(31,111,209,.28)}.glab{font-size:13px;color:#000}.gval{font-size:12px;color:#000;text-align:right;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#000;margin:6px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{border:1px solid #9fb0c8;padding:5px 8px}table.rep td{text-align:right;color:#000}table.rep td.rl{text-align:left;font-weight:500;background:#f5f8fc}table.rep td.ru{text-align:left;font-size:12px;color:#000;background:#f5f8fc}table.rep th.rs{width:34px;padding:0;background:#dfe8f5;text-transform:uppercase;font-size:11px;color:#0a0f1a}table.rep th.rs span,table.rep th.rs{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}table.rep th.sh{background:#0a1628;color:#fff;text-align:center;font-size:14px;text-transform:none}table.rep th.sh.sub{background:#14407a}table.rep td.out{background:#fff4b8;font-weight:700}table.rep b.short{background:#ffd400;padding:1px 6px;border-radius:5px;color:#000}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
 .tiny{font-size:12px} .right{margin-left:auto}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
@@ -252,11 +253,11 @@ const basisKey = () => S.ui.basis==='tec' ? 'tecOz' : 'limOz';
 
 function setTab(t){ S.ui.tab=t; save(); render(); }
 function render(){
-  const tabs=[['home','Home'],['quick','⚡ Quick plan'],['needs','1 · Needs'],['mix','2 · Mix'],['plan','3 · Plan'],['tests','Soil tests'],['settings','Settings']];
+  const tabs=[['home','Home'],['needs','Needs'],['mix','Mix'],['plan','Plan'],['report','📄 Report'],['tests','Soil tests'],['settings','Settings']];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
-  if(!dates().length && ['quick','needs','mix','plan'].includes(S.ui.tab)){
+  if(!dates().length && ['needs','mix','plan','report'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
-  ({home:vHome,quick:vQuick,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
+  ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,report:vReport,tests:vTests,settings:vSettings})[S.ui.tab]();
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
 }
@@ -344,7 +345,7 @@ function vHome(){
     const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
     summary=`<div class="card"><h2>Your garden at a glance</h2><p class="sub">Latest test: <b>${fmtDate(d)}</b> · ${gs.length} garden${gs.length>1?'s':''}${low?` · ${low} low-CEC`:''}</p>
       ${top.length?`<div>${top.map(([el,n])=>`<span class="stat"><b>${n} of ${gs.length}</b>need ${el.toLowerCase()}</span>`).join('')}</div>`:'<div class="okbox">Nothing needed — every mineral meets its target.</div>'}
-      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('quick')">⚡ Quick plan</button><button class="btn alt" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>${glanceCharts(d,gs)}`;
+      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>${glanceCharts(d,gs)}`;
   }
   $('#main').innerHTML=`
   <div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>
@@ -369,11 +370,11 @@ function importAny(file){ if(!file) return; if(/\.json$/i.test(file.name)) impor
 
 
 /* ---------------- CSV TEMPLATE ---------------- */
-const CSV_COLS=['Date','Garden','Bed','TEC','pH','OM_pct','EC','Sulphur','Phosphorous','Calcium','Magnesium','Potassium','Sodium','Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon'];
-const CSV_MAP={DATE:'Date',GARDEN:'Garden',BED:'Bed',TEC:'TEC',CEC:'TEC',PH:'PH',SOMPCT:'SOMpct',OMPCT:'SOMpct',OM:'SOMpct',SOM:'SOMpct',EC:'EC',S:'Sulphur',SULFUR:'Sulphur',SULPHUR:'Sulphur',P:'Phosphorous',PHOSPHORUS:'Phosphorous',PHOSPHOROUS:'Phosphorous',CA:'Calcium',CALCIUM:'Calcium',MG:'Magnesium',MAGNESIUM:'Magnesium',K:'Potassium',POTASSIUM:'Potassium',NA:'Sodium',SODIUM:'Sodium',B:'Boron',BORON:'Boron',FE:'Iron',IRON:'Iron',MN:'Manganese',MANGANESE:'Manganese',CU:'Copper',COPPER:'Copper',ZN:'Zinc',ZINC:'Zinc',AL:'Aluminium',ALUMINIUM:'Aluminium',ALUMINUM:'Aluminium',CO:'Cobalt',COBALT:'Cobalt',MO:'Molybdenum',MOLYBDENUM:'Molybdenum',SE:'Selenium',SELENIUM:'Selenium',SI:'Silicon',SILICON:'Silicon'};
+const CSV_COLS=['Date','Garden','Bed','TEC','pH','OM_pct','EC','Sulphur','Phosphorous','Calcium','Magnesium','Potassium','Sodium','Boron','Iron','Manganese','Copper','Zinc','Aluminium','Cobalt','Molybdenum','Selenium','Silicon','LabNo','Depth','OtherBases','ExchH'];
+const CSV_MAP={LABNO:'LabNo',DEPTHIN:'Depth',DEPTH:'Depth',OTHERBASESPCT:'OtherBases',OTHERBASES:'OtherBases',EXCHHPCT:'ExchH',EXCHH:'ExchH',DATE:'Date',GARDEN:'Garden',BED:'Bed',TEC:'TEC',CEC:'TEC',PH:'PH',SOMPCT:'SOMpct',OMPCT:'SOMpct',OM:'SOMpct',SOM:'SOMpct',EC:'EC',S:'Sulphur',SULFUR:'Sulphur',SULPHUR:'Sulphur',P:'Phosphorous',PHOSPHORUS:'Phosphorous',PHOSPHOROUS:'Phosphorous',CA:'Calcium',CALCIUM:'Calcium',MG:'Magnesium',MAGNESIUM:'Magnesium',K:'Potassium',POTASSIUM:'Potassium',NA:'Sodium',SODIUM:'Sodium',B:'Boron',BORON:'Boron',FE:'Iron',IRON:'Iron',MN:'Manganese',MANGANESE:'Manganese',CU:'Copper',COPPER:'Copper',ZN:'Zinc',ZINC:'Zinc',AL:'Aluminium',ALUMINIUM:'Aluminium',ALUMINUM:'Aluminium',CO:'Cobalt',COBALT:'Cobalt',MO:'Molybdenum',MOLYBDENUM:'Molybdenum',SE:'Selenium',SELENIUM:'Selenium',SI:'Silicon',SILICON:'Silicon'};
 function downloadTemplate(){
-  const ex1=['2026-04-01','1','A',8.2,6.5,3.8,0.4,12,95,1180,140,62,20,0.4,38,14,1.1,6.2,420,0.03,0.05,0.1,''];
-  const ex2=['2026-04-01','1','B',5.4,6.1,2.6,0.3,9,48,640,78,34,14,0.3,24,6,0.7,3.1,300,0.02,0.03,0.08,''];
+  const ex1=['2026-04-01','1','A',8.2,6.5,3.8,0.4,12,95,1180,140,62,20,0.4,38,14,1.1,6.2,420,0.03,0.05,0.1,'',183,6,5.1,10.5];
+  const ex2=['2026-04-01','1','B',5.4,6.1,2.6,0.3,9,48,640,78,34,14,0.3,24,6,0.7,3.1,300,0.02,0.03,0.08,'',184,6,5.0,9.0];
   download('soil-test-template.csv',[CSV_COLS.join(','),ex1.join(','),ex2.join(',')].join('\n')+'\n','text/csv');
 }
 function csvRows(t){ const rows=[]; let r=[],c='',q=false; t=t.replace(/^﻿/,'');
@@ -394,57 +395,6 @@ function importCsv(file){ file.text().then(t=>{
     (S.tests[dt] ||= {})[key]=vals; if(!(key in S.sizes)) S.sizes[key]=0; S.ui.date=dt; n++; });
   save(); render(); alert(`Imported ${n} test row${n===1?'':'s'}.`+(skip.length?` Skipped rows without a TEC value: ${skip.join(', ')}.`:'')); }); }
 
-
-/* ---------------- QUICK PLAN (guided, 3 steps) ---------------- */
-let QUICK=null;
-function vQuick(){
-  const d=S.ui.date, gs=gardensOf(d);
-  S.ui.sel=S.ui.sel.filter(g=>gs.includes(g)); if(!S.ui.sel.length) S.ui.sel=[gs[0]];
-  const need=needLbs(), area=selArea();
-  const ready=area>0, top=EL.filter(e=>need[e]>0.0005).sort((a,b)=>need[b]/(need[a]||1)-1).slice(0,5);
-  const mix=curMix(), has=Object.keys(mix).length>0;
-  $('#main').innerHTML=`
-  <div class="hero"><h2>Quick plan</h2><p>Three steps from soil test to shopping list. Want every number? Use the Needs, Mix and Plan tabs.</p></div>
-  <div class="card"><div class="row"><h2>① Which beds are you treating?</h2><span class="right row"><span class="muted">Test date</span>${dateSelect()}</span></div>
-    <p class="sub" style="margin:0 0 8px">Tick the beds and enter each one's size in square feet (length × width).</p>
-    ${Object.entries(groupGardens(gs)).map(([gn,ks])=>`<div style="margin-bottom:6px">${ks.length>1||nameParts(ks[0]).b?`<b class="tiny">${esc(gn)}</b> <a class="tiny" href="#" onclick="selGarden('${esc(gn).replace(/'/g,"\\'")}');return false">select whole garden</a><br>`:''}${ks.map(g=>`<label class="chip ${S.ui.sel.includes(g)?'on':''}"><input type="checkbox" ${S.ui.sel.includes(g)?'checked':''} onchange="toggleSel('${esc(g).replace(/'/g,"\\'")}')" hidden>${esc(nameParts(g).b?nameParts(g).b:g)}
-      <input type="number" value="${size(g)||''}" placeholder="sq-ft" step="50" onclick="event.stopPropagation()" onchange="S.sizes['${esc(g).replace(/'/g,"\\'")}']=+this.value||0;save();render()" style="width:84px"> <span class="muted tiny">sq-ft</span></label>`).join('')}</div>`).join('')}
-    <div class="tiny" style="color:#000">Selected area: <b>${area.toLocaleString()} sq-ft</b> ${ready?'':'<span class="pill warn">enter the size of each ticked bed</span>'}</div></div>
-  ${ownedCard()}
-  <div class="card"><h2>③ What the soil needs</h2>
-    ${top.length?`<p class="sub" style="margin:0 0 6px">Biggest needs for these beds:</p><div>${top.map(e=>`<span class="stat" title="${esc(srcTip(e))}" style="cursor:help"><b>${e}</b>${f2(need[e])} lb to add</span>`).join('')}</div>`:'<div class="okbox">Nothing is needed. Every mineral meets its target.</div>'}
-    <div class="row noprint" style="margin-top:6px"><button class="btn" ${ready&&top.length?'':'disabled'} onclick="quickBuild()">Build my recommended mix</button>
-    <span class="muted tiny">Picks products from the full list, kept within the yearly limits.</span></div></div>
-  ${QUICK&&QUICK.msg?`<div class="warnbox">${esc(QUICK.msg)}</div>`:''}
-  ${has?quickResult(mix,need):''}`;
-}
-
-function ownedCard(){
-  const list=COMPS.filter(c=>Object.keys(c.minerals).some(m=>EL.includes(m)));
-  const mine=list.filter(c=>isOn(c.id));
-  if(S.ui.ownedAsked&&!S.ui.ownedOpen) return `<div class="card"><div class="row"><h2 style="margin:0">② Products you own</h2><span class="muted tiny" style="color:#000">${mine.length?esc(mine.map(c=>c.id).join(', ')):'None. Everything will go on your shopping list.'}</span><a class="right tiny" href="#" onclick="S.ui.ownedOpen=true;render();return false">change</a></div></div>`;
-  return `<div class="card"><h2>② Do you already own any products? <span class="muted tiny">(optional)</span></h2>
-    <p class="sub" style="margin:0 0 8px">Tick what's in your shed and it won't go on the shopping list. Not sure? Skip it and everything is listed as something to buy.</p>
-    <div>${list.map(c=>`<label class="chip ${isOn(c.id)?'on':''}"><input type="checkbox" ${isOn(c.id)?'checked':''} onchange="toggleHave('${esc(c.id).replace(/'/g,"\\'")}',this.checked)" hidden>${esc(c.id)}</label>`).join('')}</div>
-    <div class="row noprint" style="margin-top:8px"><button class="btn" onclick="S.ui.ownedAsked=true;S.ui.ownedOpen=false;save();render()">${mine.length?'Done':'Skip, buy everything'}</button>${mine.length?`<span class="muted tiny" style="color:#000">${mine.length} ticked</span>`:''}</div></div>`;
-}
-function quickBuild(){
-  const need=needLbs(), area=selArea(), lim={}; for(const [el,mx] of Object.entries(S.settings.maxLbsPerAcre)) lim[el]=0.99*mx*area/S.settings.sqftPerAcre;
-  const useful=c=>Object.keys(c.minerals).some(m=>EL.includes(m));
-  const ids=COMPS.filter(c=>(RECO.includes(c.id)||c.custom||isOn(c.id))&&useful(c)).map(c=>c.id);
-  const m=E.suggest(need,COMPS,ids,{limits:lim}); for(const k in m) if(!(m[k]>0)) delete m[k];
-  S.ui.mixes[mixKey()]=m; QUICK={msg:''}; save(); render();
-}
-function quickResult(mix,need){
-  const area=selArea(), sup=E.supplied(mix,COMPS), st=optStats(mix,need), lim=E.limitCheck(sup,area,S.settings).filter(l=>l.over);
-  const ids=Object.keys(mix).sort((a,b)=>mix[b]-mix[a]), buy=ids.filter(id=>!isOn(id));
-  return `<div class="card"><h2>④ Your mix and shopping list</h2>
-    <div style="margin:4px 0 8px"><span class="pill ${st.met===st.total?'':'low'}">${st.met} of ${st.total} needs covered</span> <span class="pill low">${ids.length} products</span> ${lim.length?`<span class="pill warn">over yearly limit: ${esc(lim.map(l=>l.element).join(', '))}</span>`:'<span class="pill">within yearly limits</span>'}</div>
-    <div class="scroll"><table><tr><th>Product</th><th>Amount</th><th style="text-align:left">Why</th><th></th></tr>${ids.map(id=>`<tr><td>${esc(id)}</td><td style="white-space:nowrap">${(mix[id]*16).toFixed(1)} oz<div class="muted tiny">${mix[id].toFixed(2)} lb</div></td><td class="why">${esc(whyFor(id,mix[id],need))}</td><td>${isOn(id)?'<span class="pill">have</span>':'<span class="pill warn">to buy</span>'}</td></tr>`).join('')}</table></div>
-    ${st.short.length?`<p class="tiny" style="color:#000"><b>Still short:</b> ${st.short.map(([e,v])=>`${e} ${Math.round(v*100)}%`).join(', ')}. The Mix tab lets you fine-tune.</p>`:''}
-    <p class="tiny muted">${buy.length?`${buy.length} item${buy.length>1?'s':''} to buy.`:'You already have everything in this mix.'} Amounts are for the ${area.toLocaleString()} sq-ft ticked above.</p>
-    <div class="row noprint"><button class="btn" onclick="goShop()">🛒 Shopping list</button><button class="btn alt" onclick="copyShop()">Copy list</button><button class="btn alt" onclick="setTab('mix')">Fine-tune in Mix</button><button class="btn alt" onclick="showOptions();setTab('mix')">See other options</button><span id="shopmsg" class="muted tiny"></span></div></div>`;
-}
 
 /* ---------------- NEEDS ---------------- */
 /* Garden → Bed hierarchy: a test sample is stored under "Garden / Bed" (or just "Garden" when it has no beds) */
@@ -531,7 +481,7 @@ function vNeeds(){
   $('#main').innerHTML=`${banner}
   <div class="card"><div class="row"><div><h2>What each garden needs</h2><p class="sub" style="margin:0">Ounces per sq-ft to add, from the soil test of <b>${fmtDate(d)}</b>.</p></div>
     <div class="right row"><span class="muted">View</span>${viewSel}<span class="muted">Test date</span>${dateSelect()}<span class="muted">Show</span>${basisSeg()}</div></div></div>
-  ${(()=>{ const cnt={}; gs.forEach(g=>{ for(const el of EL){ const x=an[g][el]; if(x&&x.limOz>0) cnt[el]=(cnt[el]||0)+1; } }); const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,4); return `<div class="okbox noprint" style="background:#fff"><b>${top.length?'Most common needs: '+top.map(([e,n])=>e.toLowerCase()+' ('+n+' of '+gs.length+')').join(', '):'Every mineral meets its target.'}</b> <button class="btn" style="margin-left:8px" onclick="setTab('quick')">Build a mix →</button></div>`; })()}
+  ${(()=>{ const cnt={}; gs.forEach(g=>{ for(const el of EL){ const x=an[g][el]; if(x&&x.limOz>0) cnt[el]=(cnt[el]||0)+1; } }); const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,4); return `<div class="okbox noprint" style="background:#fff"><b>${top.length?'Most common needs: '+top.map(([e,n])=>e.toLowerCase()+' ('+n+' of '+gs.length+')').join(', '):'Every mineral meets its target.'}</b> <button class="btn" style="margin-left:8px" onclick="setTab('mix')">Build a mix →</button></div>`; })()}
   <div class="card scroll"><table class="needs">${head}${rows}</table>
     <p class="tiny muted">Shading = how far below target. <b>Ideal target (tecOz)</b> aims at the Ideal Soil target for the soil's TEC; <b>Target + minimum (limOz)</b> is the larger of that and the book's minimum-ppm floor (Ca 750, Mg 100, K 100, Na 25, P 100, S 50, B 1, Fe 50, Mn 25, Cu 5, Zn 10).</p></div>
   ${balanceCard(gs,an)}
@@ -709,11 +659,11 @@ const BUY_LINKS={};
 const AFFILIATE_NOTE='Some links may be affiliate links: we may earn a small commission at no extra cost to you. Recommendations come from your soil data, not from the links.';
 const hasLinks=()=>Object.values(BUY_LINKS).some(u=>/^https:\/\//.test(u));
 const buyLink=id=>/^https:\/\//.test(BUY_LINKS[id]||'')?`<a href="${esc(BUY_LINKS[id])}" target="_blank" rel="sponsored noopener noreferrer">Buy</a>`:'<span class="muted tiny">–</span>';
-async function printRecipe(){
-  const card=document.querySelector('#main .card'); if(!card) return;
+async function printRecipe(sel,fname){
+  const card=document.querySelector(typeof sel==='string'?sel:'#main .card'); if(!card) return;
   const clone=card.cloneNode(true); clone.querySelectorAll('.noprint,button').forEach(n=>n.remove());
   const html='<!doctype html><meta charset="utf-8"><title>Soil recipe</title><style>body{font:14px system-ui,sans-serif;max-width:800px;margin:20px auto;padding:0 12px;color:#0a0f1a}table{border-collapse:collapse;width:100%;margin:6px 0 14px}th,td{border-bottom:1px solid #ccc;padding:4px 8px;text-align:left}h2{margin:0}h3{margin:16px 0 4px}.muted,.tiny{color:#666;font-size:12px}.warnbox{border:1px solid #d9b700;background:#fff4b8;padding:6px}abbr{text-decoration:none}@media print{.hint{display:none}}</style><p class="hint muted">Open this file in your browser and choose Print → Save as PDF.</p>'+clone.innerHTML;
-  try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:'soil-recipe.html',data:html}); return; } } }catch(e){ return; }
+  try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename:fname||'soil-recipe.html',data:html}); return; } } }catch(e){ return; }
   window.print();
 }
 function SHOPBLOCK(buy,mix){ return `<h3 id="shoplist">🛒 Shopping list <span class="muted tiny">(products not ticked “Have”)</span></h3><div class="row noprint" style="margin-bottom:6px"><button class="btn" onclick="copyShop()">Copy list</button><button class="btn alt" onclick="saveShop()">Save as text</button><button class="btn alt" onclick="printRecipe()">Print / PDF</button><span id="shopmsg" class="muted tiny"></span></div><table><tr><th>Product</th><th>Buy (lb)</th>${hasLinks()?'<th class="noprint">Where to buy</th>':''}</tr>${buy.map(c=>`<tr><td>${esc(c.id)}</td><td>${(Math.ceil(mix[c.id]*2)/2).toFixed(1)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td>${hasLinks()?`<td class="noprint">${buyLink(c.id)}</td>`:''}</tr>`).join('')}</table>${hasLinks()?`<p class="tiny muted noprint">${esc(AFFILIATE_NOTE)}</p>`:''}`; }
@@ -731,6 +681,70 @@ function vPlan(){
     <h3>Notes from The Ideal Soil</h3><ul class="tiny" style="margin:4px 0 10px 18px;padding:0">${planTips(items).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td title="${esc(srcTip(e))}" style="cursor:help">${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>`
     : `<p class="muted">No products in the mix yet. Let the app pick products for you, or build one by hand on the Mix tab.</p><div class="row noprint"><button class="btn" onclick="doRecommend()">Suggest a mix</button><button class="btn alt" onclick="doSuggest()">Use only what I have</button></div>`}</div>`;
+}
+
+
+/* ---------------- REPORT (lab-report layout, one report per test date) ---------------- */
+function vReport(){
+  const ds=dates(); const d=S.ui.date, gs=gardensOf(d);
+  const lab=(S.reportInfo&&S.reportInfo[d]&&S.reportInfo[d].lab)||'';
+  const an=Object.fromEntries(gs.map(g=>[g,E.analyze(S.tests[d][g],S.settings)]));
+  const T=g=>S.tests[d][g], num=v=>v===undefined||v===null||v===''?'':v;
+  const ppm=S.settings.ppmPerMeq;
+  const cols=(fn,cls)=>gs.map(g=>`<td class="${cls||''}">${fn(g)}</td>`).join('');
+  const row=(label,unit,fn,cls)=>`<tr><td class="rl" colspan="3">${label}</td>${cols(fn,cls)}</tr>`;
+  const sec=(name,n,inner)=>inner.replace('<tr>',`<tr><th class="rs" rowspan="${n}"><span>${name}</span></th>`);   // first row of a section gets the rotated label
+  const desired=(g,e)=>{ const a=an[g][e]; if(!a) return ''; const v=Math.max(a.target, S.settings.useCationFloors&&a.floor?a.floor:0); return Math.floor(v); };
+  const found=(g,e)=>num(T(g)[e]);
+  const deficit=(g,e)=>{ const f=T(g)[e], dsr=desired(g,e); return (f!==undefined&&dsr!==''&&f<dsr)?`<b class="short">${Math.round(f-dsr)}</b>`:''; };
+  const satv=(g,e)=>{ const f=T(g)[e], tec=T(g).TEC; return (f!==undefined&&tec)?+(f/(ppm[e]*tec)*100).toFixed(2):''; };
+  const satcls=(g,e,lo,hi)=>{ const v=satv(g,e); return v===''?'':(v<lo||v>hi?'out':''); };
+  const satRow=(label,e,lo,hi)=>`<tr><td class="rl" colspan="3">${label}</td>${gs.map(g=>`<td class="${satcls(g,e,lo,hi)}">${num(satv(g,e))}</td>`).join('')}</tr>`;
+  const cat=(label,e)=>`<tr><td class="rl" rowspan="3">${label}<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td><td></td>${cols(g=>desired(g,e))}</tr><tr><td class="ru">Value Found</td><td></td>${cols(g=>found(g,e))}</tr><tr><td class="ru">Deficit</td><td></td>${cols(g=>deficit(g,e))}</tr>`;
+  const known=g=>{ const t=T(g); return t.OtherBases!==undefined||t.ExchH!==undefined; };
+  const rest=g=>{ const t=T(g); let sum=0; for(const e of ['Calcium','Magnesium','Potassium','Sodium']){ const v=satv(g,e); if(v==='') return ''; sum+=v; } return +(100-sum).toFixed(2); };
+  const body=`
+    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample Location</td>${gs.map(g=>`<th class="sh">${esc(nameLabel(g))}</th>`).join('')}</tr>
+    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample ID</td>${gs.map(g=>`<th class="sh sub"></th>`).join('')}</tr>
+    ${row('Lab Number','',g=>num(T(g).LabNo))}
+    ${row('Sample Depth in inches','',g=>num(T(g).Depth))}
+    ${row('Total Exchange Capacity (M.E.)','',g=>num(T(g).TEC))}
+    ${row('pH of Soil Sample','',g=>num(T(g).PH))}
+    ${row('Organic Matter, Percent','',g=>num(T(g).SOMpct))}
+    <tr class="sect"><th class="rs" rowspan="2">ANIONS</th><td class="rl" colspan="2">SULFUR:<div class="muted tiny">p.p.m.</div></td>${cols(g=>found(g,'Sulphur'))}</tr>
+    <tr><td class="rl" colspan="2">Mehlich III Phosphorous:<div class="muted tiny">ppm</div></td>${cols(g=>found(g,'Phosphorous'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="10">EXCHANGEABLE CATIONS</th><td class="rl" rowspan="3">CALCIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Calcium'))}</tr>
+    <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Calcium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Calcium'))}</tr>
+    <tr><td class="rl" rowspan="3">MAGNESIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Magnesium'))}</tr>
+    <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Magnesium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Magnesium'))}</tr>
+    <tr><td class="rl" rowspan="3">POTASSIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Potassium'))}</tr>
+    <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Potassium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Potassium'))}</tr>
+    <tr><td class="rl" colspan="2">SODIUM:<div class="muted tiny">ppm</div></td>${cols(g=>found(g,'Sodium'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="6">BASE SATURATION %</th><td class="rl" colspan="2">Calcium (60 to 70%)</td>${gs.map(g=>`<td class="${satcls(g,'Calcium',60,70)}">${num(satv(g,'Calcium'))}</td>`).join('')}</tr>
+    <tr><td class="rl" colspan="2">Magnesium (10 to 20%)</td>${gs.map(g=>`<td class="${satcls(g,'Magnesium',10,20)}">${num(satv(g,'Magnesium'))}</td>`).join('')}</tr>
+    <tr><td class="rl" colspan="2">Potassium (2 to 5%)</td>${gs.map(g=>`<td class="${satcls(g,'Potassium',2,5)}">${num(satv(g,'Potassium'))}</td>`).join('')}</tr>
+    <tr><td class="rl" colspan="2">Sodium (.5 to 3%)</td>${gs.map(g=>`<td class="${satcls(g,'Sodium',.5,3)}">${num(satv(g,'Sodium'))}</td>`).join('')}</tr>
+    <tr><td class="rl" colspan="2">Other Bases (Variable)</td>${cols(g=>known(g)?num(T(g).OtherBases):'')}</tr>
+    <tr><td class="rl" colspan="2">Exchangeable Hydrogen (10 to 15%)</td>${gs.map(g=>`<td class="${T(g).ExchH!==undefined&&(T(g).ExchH<10||T(g).ExchH>15)?'out':''}">${known(g)?num(T(g).ExchH):''}</td>`).join('')}</tr>
+    <tr class="sect"><th class="rs" rowspan="6">TRACE ELEMENTS</th><td class="rl" colspan="2">Boron (p.p.m.)</td>${cols(g=>found(g,'Boron'))}</tr>
+    <tr><td class="rl" colspan="2">Iron (p.p.m.)</td>${cols(g=>found(g,'Iron'))}</tr>
+    <tr><td class="rl" colspan="2">Manganese (p.p.m.)</td>${cols(g=>found(g,'Manganese'))}</tr>
+    <tr><td class="rl" colspan="2">Copper (p.p.m.)</td>${cols(g=>found(g,'Copper'))}</tr>
+    <tr><td class="rl" colspan="2">Zinc (p.p.m.)</td>${cols(g=>found(g,'Zinc'))}</tr>
+    <tr><td class="rl" colspan="2">Aluminum (p.p.m.)</td>${cols(g=>found(g,'Aluminium'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="5">OTHER</th><td class="rl" colspan="2">Cobalt ppm</td>${cols(g=>found(g,'Cobalt'))}</tr>
+    <tr><td class="rl" colspan="2">Molybdenum ppm</td>${cols(g=>found(g,'Molybdenum'))}</tr>
+    <tr><td class="rl" colspan="2">Selenium ppm</td>${cols(g=>found(g,'Selenium'))}</tr>
+    <tr><td class="rl" colspan="2">Silicon ppm</td>${cols(g=>found(g,'Silicon'))}</tr>
+    <tr><td class="rl" colspan="2">EC mmhos/cm</td>${cols(g=>found(g,'EC'))}</tr>`;
+  const miss=gs.length;
+  $('#main').innerHTML=`
+  <div class="card"><div class="row"><div><h2>Soil test report</h2><p class="sub" style="margin:0">Laid out like the lab's printed report. Pick any saved report below.</p></div>
+    <div class="right row noprint"><button class="btn" onclick="printRecipe('#reportcard','soil-report-${d}.html')">Print / PDF</button></div></div>
+    <div style="margin-top:8px" class="noprint">${ds.map(x=>{ const n=gardensOf(x).length, l=(S.reportInfo&&S.reportInfo[x]&&S.reportInfo[x].lab)||''; return `<button class="chip ${x===d?'on':''}" onclick="S.ui.date='${x}';save();render()" style="font:inherit">${fmtDate(x)} <span class="muted tiny">${n} sample${n>1?'s':''}${l?' · '+esc(l):''}</span></button>`; }).join('')}</div></div>
+  <div class="card scroll" id="reportcard"><h2 style="margin-bottom:2px">${fmtDate(d)}${lab?' · '+esc(lab):''}</h2><p class="tiny muted" style="margin:0 0 6px">${gs.length} sample${gs.length>1?'s':''}. Yellow cells fall outside the lab's printed range or are below the desired value.</p>
+    <table class="rep"><colgroup><col style="width:34px"><col style="width:150px"><col style="width:120px"></colgroup>${body}</table>
+    ${miss?`<p class="tiny muted">Desired values, deficits and base-saturation percentages are calculated here from TEC and the ppm values using the target settings (Desired uses the minimum floors too). so they can differ from the lab's printed numbers by a small rounding amount. Other Bases and Exchangeable Hydrogen appear only when they were entered or scanned.</p>`:''}</div>`;
 }
 
 /* ---------------- TESTS ---------------- */
@@ -832,15 +846,15 @@ async function scanPhoto(file){
       const blob=await shrink(file,1800);
       const prompt=`You are reading a photo of a soil-test lab report. Extract the results for every sample/garden column or row on it.
 Return ONLY one JSON object, no other text:
-{"date": "YYYY-MM-DD" or null, "units": "ppm" or the unit actually printed, "notes": "anything illegible, ambiguous or odd", "rows": [ {"name": "sample/garden id as printed", "TEC": number, "PH": number, "SOMpct": number, "EC": number, "Sulphur": number, "Phosphorous": number, "Calcium": number, "Magnesium": number, "Potassium": number, "Sodium": number, "Boron": number, "Iron": number, "Manganese": number, "Copper": number, "Zinc": number, "Aluminium": number, "Cobalt": number, "Molybdenum": number, "Selenium": number, "Silicon": number } ]}
-Rules: TEC is Total Exchange Capacity (CEC) in meq/100g. SOMpct is organic matter %. Use the element ppm values (not %-saturation or meq). Use null for any value not on the page. Copy digits exactly; never guess a number you cannot read - use null and mention it in notes.`;
+{"date": "YYYY-MM-DD" or null, "units": "ppm" or the unit actually printed, "notes": "anything illegible, ambiguous or odd", "rows": [ {"name": "sample/garden id as printed", "TEC": number, "PH": number, "SOMpct": number, "EC": number, "Sulphur": number, "Phosphorous": number, "Calcium": number, "Magnesium": number, "Potassium": number, "Sodium": number, "Boron": number, "Iron": number, "Manganese": number, "Copper": number, "Zinc": number, "Aluminium": number, "Cobalt": number, "Molybdenum": number, "Selenium": number, "Silicon": number, "LabNo": number, "Depth": number, "OtherBases": number, "ExchH": number } ], "lab": "lab name printed on the report or null"}
+Rules: TEC is Total Exchange Capacity (CEC) in meq/100g. SOMpct is organic matter %. Use the element ppm values (not %-saturation or meq). LabNo is the lab number, Depth the sample depth in inches, OtherBases and ExchH are the base-saturation % rows for Other Bases and Exchangeable Hydrogen. For a value printed like “< 0.02” use 0.02 and mention it in notes. Use null for any value not on the page. Copy digits exactly; never guess a number you cannot read - use null and mention it in notes.`;
       const r=await CL.sample(prompt,{images:[blob],modelTier:'complex',cache:false});
       const m=(r.text||'').replace(/```json|```/g,'').match(/\{[\s\S]*\}/); if(!m) throw new Error('no JSON in reply');
       j=JSON.parse(m[0]);
     } else {
       j=parseLabReport(await ocrText(file));
     }
-    SCAN={date:(j.date||new Date().toISOString().slice(0,10)),units:j.units||'ppm',notes:j.notes||'',rows:(j.rows||[]).map((x,i)=>({name:String(x.name||('Sample '+(i+1))),vals:Object.fromEntries(FIELDS.filter(f=>typeof x[f]==='number').map(f=>[f,x[f]]))}))};
+    SCAN={lab:j.lab||'',date:(j.date||new Date().toISOString().slice(0,10)),units:j.units||'ppm',notes:j.notes||'',rows:(j.rows||[]).map((x,i)=>({name:String(x.name||('Sample '+(i+1))),vals:Object.fromEntries(FIELDS.filter(f=>typeof x[f]==='number').map(f=>[f,x[f]]))}))};
     setMsg(SCAN.rows.length?`Found ${SCAN.rows.length} sample(s). Check every number against the paper before saving.`:'No results found - try a sharper, flatter photo, or type the values below.');
     $('#review').innerHTML=reviewHtml();
   }catch(e){ setMsg('Could not read the photo ('+(e&&e.message||e.code||'error')+'). Check your internet connection and try again, or type the values.'); }
@@ -886,15 +900,16 @@ function saveScan(){
   const dt=SCAN.date.replace(/-/g,''); const bad=SCAN.rows.filter(r=>!r.name.trim()||!r.vals.TEC);
   if(!dt||bad.length){ $('#scansave').textContent='Every sample needs a garden (and a TEC value).'; return; }
   for(const r of SCAN.rows){ (S.tests[dt] ||= {})[r.name.trim()]={...r.vals}; if(!(r.name.trim() in S.sizes)) S.sizes[r.name.trim()]=0; }
+  if(SCAN.lab){ (S.reportInfo ||= {})[dt]={lab:SCAN.lab}; }
   S.ui.date=dt; SCAN=null; save(); render();
 }
 // sync: one shared document holds tests, sizes, settings, mixes
 let pushT=null, lastT=0, synced=false;
-const payload=()=>({custom:S.custom,tests:S.tests,sizes:S.sizes,settings:S.settings,mixes:S.ui.mixes,allowed:S.ui.allowed});
+const payload=()=>({info:S.reportInfo||{},custom:S.custom,tests:S.tests,sizes:S.sizes,settings:S.settings,mixes:S.ui.mixes,allowed:S.ui.allowed});
 function schedulePush(){ if(!CL.db||!synced) return; clearTimeout(pushT); pushT=setTimeout(async()=>{ try{ lastT=Date.now(); await CL.db.collection('planner').doc('state').set({json:JSON.stringify(payload()),t:lastT}); }catch(e){} },800); }
 function startSync(){
   const ref=CL.db.collection('planner').doc('state');
-  const apply=(d)=>{ try{ const p=JSON.parse(d.json); S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; fixSettings(); S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} };
+  const apply=(d)=>{ try{ const p=JSON.parse(d.json); S.reportInfo=p.info||{}; S.custom=p.custom||[]; rebuildComps(); S.tests=p.tests; S.sizes=p.sizes; S.settings=p.settings; fixSettings(); S.ui.mixes=p.mixes||{}; S.ui.allowed=p.allowed||{}; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]; lastT=d.t; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render(); }catch(e){} };
   ref.onSnapshot(snap=>{
     const ex=typeof snap.exists==='function'?snap.exists():snap.exists, d=ex?(typeof snap.data==='function'?snap.data():snap.data):null;
     if(d&&d.json){ if(d.t!==lastT) apply(d); synced=true; }
