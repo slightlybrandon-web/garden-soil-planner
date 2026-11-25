@@ -92,6 +92,8 @@ table.rep tr.sc-info td.rl{font-weight:600}
 .lpanel{display:none}.lpanel.on{display:block}.ltips{margin:0;padding-left:0;list-style:none;display:grid;gap:8px}.ltips li{background:#f4f8fd;border-left:3px solid #14407a;border-radius:8px;padding:9px 12px}.lpanel .step i .ic{width:20px;height:20px}
 .qa5{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.qa label{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--green);font:inherit;font-weight:650;cursor:pointer;text-align:center}.qa label:hover{border-color:var(--green);box-shadow:0 2px 8px rgba(16,40,80,.15)}.qa label span .ic{width:28px;height:28px}.qa small{font-weight:400;opacity:.8}
 @media(max-width:760px){.qa5{grid-template-columns:repeat(2,1fr)}.qa label{flex-direction:row;justify-content:center;padding:12px 8px;font-size:14px}.qa label span .ic{width:20px;height:20px}}
+.tipbubble{position:fixed;z-index:200;max-width:min(300px,calc(100vw - 16px));background:#0a1628;color:#fff;font-size:14px;line-height:1.4;padding:9px 12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);pointer-events:none}
+abbr[title],abbr[data-tip]{cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
 .btn.big{font-size:18px;padding:14px 22px;min-height:52px}.herobtn{background:#fff;color:#0a1628;border-color:#fff}.learnbox summary{font-size:16px}
 .hsteps{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.hsteps span{background:rgba(255,255,255,.14);border-radius:99px;padding:6px 14px;font-size:14px}.hsteps b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ffd400;color:#0a0f1a;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
 .learn details{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:0}.learn summary{cursor:pointer;padding:12px 14px;font-weight:600;color:#000}.learn details[open] summary{border-bottom:1px solid var(--line)}.learn p{margin:0;padding:10px 14px 12px;color:#000}
@@ -132,9 +134,9 @@ label>span{font-weight:550;color:#1d2840}.step .muted,.opt span.d,.ltips li{colo
 </head>
 <body>
 <header><h1 style="cursor:pointer" onclick="setTab('home')"><span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9"/><path d="M12 12C12 8 9 6 5 6c0 4 3 6 7 6z"/><path d="M12 14c0-3.5 2.5-6 7-6 0 3.5-2.5 6-7 6z"/></svg></span> Garden Soil Planner</h1>
-<button id="acctchip" class="chip noprint" onclick="S.ui.tab==='home'?document.getElementById('acctcard')&&document.getElementById('acctcard').scrollIntoView({behavior:'smooth'}):setTab('home')" style="display:none"></button><nav id="nav"></nav></header>
+<button id="acctchip" class="chip noprint" onclick="chipGo()" style="display:none"></button><nav id="nav"></nav></header>
 <main id="main"></main>
-<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser unless you sign in to an account. · <a href="#" onclick="setTab('privacy');return false">Privacy policy</a></footer>
+<footer style="max-width:1180px;margin:0 auto;padding:0 18px 40px" class="tiny muted noprint">Tip: tap or hover any underlined word for a plain-English definition. Targets follow The Ideal Soil (Michael Astera): TEC-based ideal percentages, 6-inch samples, Mehlich-3 ppm values. This is one school of soil management (base-saturation), not the only one. Check or change the targets in Settings. This is a planning aid, not professional agronomic advice. Your data stays in this browser unless you sign in to an account. · <a href="#" onclick="setTab('privacy');return false">Privacy policy</a></footer>
 
 <script>// Soil recommendation engine. Pure functions, no DOM. Used by the app and by test.js.
 (function (root) {
@@ -1173,8 +1175,10 @@ async function ensureTok(){ if(!ACCT) return false; if(Date.now()<ACCT.exp) retu
   try{ setAcct(await sbReq('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHead(),body:JSON.stringify({refresh_token:ACCT.refresh})})); return true; }
   catch(e){ ACCT=null; ACSYNC=false; try{localStorage.removeItem(AK);}catch(_){} ACMSG='Your sign-in expired. Please sign in again; your data is safe in your account.'; render(); return false; } }
 function acctChip(){ const b=document.getElementById('acctchip'); if(!b) return; if(!sbOn()){ b.style.display='none'; return; } b.style.display='';
-  if(ACCT){ b.className='chip in'; b.innerHTML='<span class="dot"></span><span class="em">'+esc((S.profile&&S.profile.name)||ACCT.email||'')+'</span><span class="si">Signed in</span><span class="st">· '+esc(ACSTAT||'Saved')+'</span>'; b.title='Signed in as '+ACCT.email; }
+  if(ACCT){ const nm=(S.profile&&S.profile.name)||'', bad=/Not saved/.test(ACSTAT||'');
+    b.className='chip in'; b.innerHTML='<span class="dot"></span><span class="em">'+esc(nm||ACCT.email||'')+'</span><span class="si">'+esc(nm||'Signed in')+'</span>'+(bad?'<span class="st">· not saved</span>':''); b.title='Signed in as '+ACCT.email+'. Tap for your account'; }
   else { b.className='chip'; b.innerHTML=ic('user')+' Sign in'; b.title='Sign in to save your data to an account'; } }
+function chipGo(){ const go=()=>{ const e=document.getElementById('acctcard'); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); }; if(ACCT){ if(S.ui.tab!=='settings') setTab('settings'); } else if(S.ui.tab!=='home') setTab('home'); setTimeout(go,60); }
 let ACSTAT='';
 
 function profSummary(){ const keys=[...new Set(dates().flatMap(d=>Object.keys(S.tests[d])))]; if(!keys.length) return 'No beds yet. Add a soil test and your garden setup appears here.';
@@ -1241,6 +1245,25 @@ function acctSignOut(){ ACSYNC=false; clearTimeout(acT); ACCT=null; ACOUT=false;
   S.tests={}; S.sizes={}; S.custom=[]; S.reportInfo={}; S.ui.mixes={}; S.ui.allowed={}; S.ui.units={}; S.ui.lastKey=''; S.ui.carried={}; S.ui.date=null; S.ui.sel=[]; S.ui.view='all'; S.ui.tab='home'; rebuildComps(); mem=clone(S); render(); }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&sbOn()&&ACCT&&ACSYNC&&!pushT&&!acT) acctPull(false); });
 if(ACCT) setTimeout(()=>{ if(sbOn()) acctPull(true); },300);
+
+/* ---------------- tap / hover definitions ---------------- */
+(function(){
+  const SEL='abbr,td[title],th[title],span[title],[data-tip]';
+  let tip=null, cur=null;
+  const hide=()=>{ if(tip){ tip.remove(); tip=null; } cur=null; };
+  const text=el=>{ if(el.hasAttribute('title')){ el.dataset.tip=el.getAttribute('title'); el.removeAttribute('title'); } return el.dataset.tip||''; };
+  function show(el){
+    const t=text(el); if(!t){ hide(); return; } if(cur===el&&tip) return; hide(); cur=el;
+    tip=document.createElement('div'); tip.className='tipbubble'; tip.setAttribute('role','tooltip'); tip.textContent=t; document.body.appendChild(tip);
+    const r=el.getBoundingClientRect(), w=tip.offsetWidth, h=tip.offsetHeight;
+    let x=Math.min(Math.max(8,r.left+r.width/2-w/2),innerWidth-w-8), y=r.bottom+8; if(y+h>innerHeight-8) y=Math.max(8,r.top-h-8);
+    tip.style.left=x+'px'; tip.style.top=y+'px';
+  }
+  const canHover=matchMedia('(hover:hover)').matches;
+  document.addEventListener('mouseover',e=>{ if(!canHover) return; const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a,label')) show(el); else if(tip&&!(e.target.closest&&e.target.closest('.tipbubble'))) hide(); });
+  document.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest(SEL); if(el&&!el.closest('button,a,label')){ if(cur===el&&tip) hide(); else show(el); } else hide(); });
+  document.addEventListener('scroll',hide,true); document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
+})();
 initCaps();
 
 const PRODUCT_TIPS={AgSulphur:'Ag sulfur only turns into sulfate when the soil is warmer than about 55°F (13°C).',CalPhos:'Colloidal clay phosphate releases phosphorus slowly, and the book does not count its calcium toward your calcium need.',
