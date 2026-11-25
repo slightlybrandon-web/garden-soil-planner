@@ -54,6 +54,7 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 .ppmbar b.tg{position:absolute;top:-3px;width:2px;height:16px;background:#222}.ppmbar b.fl{position:absolute;top:-1px;width:2px;height:12px;background:#999}
 details.gd{padding:0}details.gd>summary{cursor:pointer;padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;list-style:none}details.gd>summary::-webkit-details-marker{display:none}details.gd>summary:before{content:'▸';color:var(--green)}details.gd[open]>summary:before{content:'▾'}details.gd>*:not(summary){margin-left:14px;margin-right:14px}details.gd>.scroll{margin-bottom:12px}.sumneeds{margin-left:auto}th.gh{text-align:center;background:var(--green2);border-bottom:2px solid var(--green)}
 table.needs td,table.needs th{text-align:center}table.needs td:first-child,table.needs th:first-child{text-align:left}
+.gl{display:grid;grid-template-columns:110px 1fr 56px;gap:4px 10px;align-items:center;margin:2px 0}.gtrack{position:relative;height:14px;background:#e3ebf6;border-radius:7px}.gfill{position:absolute;left:0;top:0;height:100%;border-radius:7px}.gmark{position:absolute;top:-3px;width:2px;height:20px;background:#0a0f1a}.gdot{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;border:2px solid #0a0f1a}.gband{position:absolute;top:0;height:100%;background:rgba(31,111,209,.28)}.glab{font-size:13px;color:#000}.gval{font-size:12px;color:#000;text-align:right;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#000;margin:6px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 .stat{display:inline-block;background:var(--green2);border-radius:10px;padding:8px 14px;margin:0 8px 8px 0}.stat b{display:block;font-size:20px;color:#000}
 .tiny{font-size:12px} .right{margin-left:auto}
 @media print{header,nav,.noprint,button{display:none!important} body{background:#fff}.card{border:0}}
@@ -309,6 +310,31 @@ const basisSeg = () => `<span class="seg"><button class="${S.ui.basis==='tec'?'o
 const EXAMPLE={date:'20250401',rows:{'Bed A':{TEC:8.2,PH:6.5,SOMpct:3.8,Sulphur:12,Phosphorous:95,Calcium:1180,Magnesium:140,Potassium:62,Sodium:20,Boron:0.4,Iron:38,Manganese:14,Copper:1.1,Zinc:6.2,Aluminium:420,Cobalt:0.03,Molybdenum:0.05,Selenium:0.1},
   'Bed B':{TEC:5.4,PH:6.1,SOMpct:2.6,Sulphur:9,Phosphorous:48,Calcium:640,Magnesium:78,Potassium:34,Sodium:14,Boron:0.3,Iron:24,Manganese:6,Copper:0.7,Zinc:3.1,Aluminium:300,Cobalt:0.02,Molybdenum:0.03,Selenium:0.08}}};
 function loadExample(){ S.tests[EXAMPLE.date]=clone(EXAMPLE.rows); S.sizes['Bed A']=S.sizes['Bed A']||400; S.sizes['Bed B']=S.sizes['Bed B']||400; S.ui.date=EXAMPLE.date; S.ui.sel=['Bed A','Bed B']; S.ui.garden='Bed A'; save(); setTab('needs'); }
+
+/* ---------- Home "at a glance" charts ---------- */
+function glanceCharts(d,gs){
+  const an=Object.fromEntries(gs.map(g=>[g,E.analyze(S.tests[d][g],S.settings)]));
+  const col=v=>v>115?'#ffd400':v>=95?'#1f6fd1':v>=70?'#7fb0e8':'#0a0f1a';
+  const rows=EL.map(e=>{ const pts=gs.map(g=>an[g][e]).filter(a=>a&&a.target>0).map((a,i)=>({g:gs[i],pct:a.found/a.target*100,found:a.found,target:a.target}));
+    return pts.length?{e,pts,avg:pts.reduce((t,x)=>t+x.pct,0)/pts.length}:null; }).filter(Boolean).sort((a,b)=>a.avg-b.avg);
+  const MAX=150, pos=v=>Math.min(100,v/MAX*100);
+  const A=rows.map(r=>`<div class="gl"><span class="glab" title="${esc(GLOSS[r.e]||'')}">${r.e}</span>
+    <div class="gtrack" title="${esc(r.pts.map(x=>nameLabel(x.g)+': '+x.found+' of '+(+x.target.toFixed(x.target<5?2:0))+' ppm target').join('\n'))}"><div class="gfill" style="width:${pos(r.avg)}%;background:${col(r.avg)}"></div>${r.pts.length>1?r.pts.map(x=>`<span class="gdot" style="left:${pos(x.pct)}%"></span>`).join(''):''}<span class="gmark" style="left:${pos(100)}%"></span></div>
+    <span class="gval">${Math.round(r.avg)}%</span></div>`).join('');
+  const CAT=['Calcium','Magnesium','Potassium','Sodium'], cmax={Calcium:100,Magnesium:30,Potassium:10,Sodium:8};
+  const B=CAT.map(e=>{ const pts=gs.map(g=>an[g][e]).filter(a=>a&&a.satRange); if(!pts.length) return ''; const [lo,hi]=pts[0].satRange, mx=cmax[e], p=v=>Math.min(100,v/mx*100);
+    const avg=pts.reduce((t,a)=>t+a.satPct,0)/pts.length;
+    return `<div class="gl"><span class="glab">${e}</span><div class="gtrack" title="${esc(pts.map((a,i)=>nameLabel(gs[i])+': '+a.satPct.toFixed(1)+'%').join('\n'))}"><div class="gband" style="left:${p(lo)}%;width:${p(hi)-p(lo)}%"></div>${pts.map(a=>`<span class="gdot" style="left:${p(a.satPct)}%;border-color:${a.satPct<lo?'#0a0f1a':a.satPct>hi?'#b38f00':'#1f6fd1'}"></span>`).join('')}</div><span class="gval">${avg.toFixed(1)}%</span></div>`; }).join('');
+  const low=rows.filter(r=>r.avg<70&&!['Molybdenum','Selenium','Cobalt'].includes(r.e)).map(r=>r.e);
+  return `<div class="card"><h2 style="margin-bottom:2px">How close is the soil to its targets?</h2>
+    <p class="sub" style="margin:0 0 6px">Each bar is a mineral's level as a percent of its ideal target${gs.length>1?` (average of your ${gs.length} beds, dots are the individual beds)`:''}. The black line is 100%: <b>on target</b>. Shortest bars come first. Cobalt, molybdenum and selenium use a fixed target and the book warns the last two are toxic in excess, so treat those as low priority.</p>
+    <div class="legend"><span><i style="background:#0a0f1a"></i>under 70%</span><span><i style="background:#7fb0e8"></i>70–95%</span><span><i style="background:#1f6fd1"></i>on target</span><span><i style="background:#ffd400;border:1px solid #0a0f1a"></i>over 115%</span></div>
+    ${A}
+    ${low.length?`<p class="tiny" style="color:#000;margin:8px 0 0">Furthest from target: <b>${low.slice(0,4).join(', ')}</b>.</p>`:'<p class="tiny" style="color:#000;margin:8px 0 0">Nothing is far below target.</p>'}</div>
+  <div class="card"><h2 style="margin-bottom:2px">Calcium, magnesium, potassium, sodium balance</h2>
+    <p class="sub" style="margin:0 0 6px">These four share the soil's holding capacity (TEC), so the <i>share</i> matters. The shaded band is the ideal range from The Ideal Soil; each dot is a bed. Dots inside the band are balanced.</p>${B}</div>`;
+}
+const nameLabel=k=>{ const n=nameParts(k); return n.b?n.g+' › '+n.b:n.g; };
 function vHome(){
   const ds=dates(), has=ds.length, d=S.ui.date;
   let summary='';
@@ -318,7 +344,7 @@ function vHome(){
     const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
     summary=`<div class="card"><h2>Your garden at a glance</h2><p class="sub">Latest test: <b>${fmtDate(d)}</b> · ${gs.length} garden${gs.length>1?'s':''}${low?` · ${low} low-CEC`:''}</p>
       ${top.length?`<div>${top.map(([el,n])=>`<span class="stat"><b>${n} of ${gs.length}</b>need ${el.toLowerCase()}</span>`).join('')}</div>`:'<div class="okbox">Nothing needed — every mineral meets its target.</div>'}
-      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('quick')">⚡ Quick plan</button><button class="btn alt" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>`;
+      <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('quick')">⚡ Quick plan</button><button class="btn alt" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>${glanceCharts(d,gs)}`;
   }
   $('#main').innerHTML=`
   <div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>
