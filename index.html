@@ -348,9 +348,8 @@ function vHome(){
       <div class="row noprint" style="margin-top:6px"><button class="btn" onclick="setTab('needs')">See what each garden needs</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">View recipe</button></div></div>${glanceCharts(d,gs)}`;
   }
   $('#main').innerHTML=`
-  <div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>
-  ${summary}
-  <h2 style="margin:4px 0">${has?'Add more':'Choose how to start'}</h2>
+  ${has?'':`<div class="hero"><h2>Know what your soil needs</h2><p>Add a soil test and this planner shows which minerals each garden is short of, which products would fix it, and how much to spread. It follows <i>The Ideal Soil</i> by Michael Astera.</p></div>`}
+  <h2 style="margin:4px 0">${has?'What would you like to do?':'Choose how to start'}</h2>
   <div class="opts">
     <label class="opt"><span class="ic">📷</span><b>Scan a lab report</b><span class="d">Take a photo of your soil test. The numbers are read for you and you check them before saving.</span><input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label>
     <button class="opt" onclick="setTab('tests');setTimeout(()=>{const e=$('#nn');if(e)e.scrollIntoView({behavior:'smooth'})},50)"><span class="ic">⌨️</span><b>Type in the results</b><span class="d">Enter the ppm values from your lab report by hand.</span></button>
@@ -358,6 +357,7 @@ function vHome(){
     <button class="opt" onclick="loadExample()"><span class="ic">🧪</span><b>Try it with example data</b><span class="d">Two sample garden beds, so you can look around first. Delete them any time.</span></button>
     <label class="opt"><span class="ic">🏷️</span><b>Scan a product label</b><span class="d">Photograph a fertilizer bag or bottle to add it to your products.</span><input type="file" accept="image/*" hidden onchange="scanLabel(this.files[0]);this.value=''"></label>
   </div>
+  ${summary}
   <div class="card" id="scancard" style="display:${(SCAN||PSCAN)?'block':'none'}"><span id="scanmsg" class="muted"></span><div id="review">${reviewHtml()}</div><span id="labelmsg" class="muted tiny"></span><div id="prodreview">${prodReviewHtml()}</div></div>
   <div class="card"><h2>How it works</h2><div class="steps" style="margin-top:8px">
     <div class="step"><i>1</i><b>Add a soil test</b><div class="tiny muted">Scan, type or import your lab results (ppm values and TEC).</div></div>
@@ -793,6 +793,12 @@ function importBackup(f){ if(!f) return; f.text().then(t=>{ try{ S=JSON.parse(t)
 const SOURCE={Calcium:'Ideal Soil chart: 68% of TEC (60–85%), 200 ppm per meq',Magnesium:'Chart: 12% (10–20%), 120 ppm per meq',Potassium:'Chart: 4% (2–5%), 390 ppm per meq',Sodium:'Chart: 1.5% (1–4%), 230 ppm per meq',
  Sulphur:'Chart: half of ideal K (up to 300 ppm)',Phosphorous:'Chart: equal to ideal K',Boron:'Chart: 1/1000 of ideal Ca (max 4 ppm)',Iron:'Chart: half of ideal K',Manganese:'Chart: half of Fe (≈50 max)',Copper:'Chart: half of Zn (up to 25)',Zinc:'Chart: 1/10 of P (up to 50)',
  Cobalt:'Book: 0.5–2 ppm of trace elements is "enough" — no specific figure',Molybdenum:'Same; toxic above ~1–2 ppm',Selenium:'Same; toxic above ~1–2 ppm'};
+let WIPE=false;
+function wipeStep(v){ WIPE=v; render(); }
+function wipeAll(){
+  S.tests={}; S.sizes={}; S.custom=[]; S.reportInfo={}; S.ui.mixes={}; S.ui.allowed={}; S.ui.units={}; S.ui.date=null; S.ui.sel=[]; S.ui.view='all'; S.ui.tab='home'; WIPE=false; OPTS=null; SCAN=null;
+  rebuildComps(); save(); render();
+}
 function vSettings(){
   const st=S.settings, rows=EL.map(el=>{
     const isCat=st.idealPct[el]!==undefined, isFix=st.fixedPpm[el]!==undefined;
@@ -812,6 +818,8 @@ function vSettings(){
     <div class="row" style="margin-top:12px"><label>Sq-ft per acre <input type="number" value="${st.sqftPerAcre}" onchange="S.settings.sqftPerAcre=+this.value;save()"></label>
     <label>Lbs/acre per ppm <input type="number" step="any" value="${st.lbsPerAcrePerPpm}" onchange="S.settings.lbsPerAcrePerPpm=+this.value;save()"></label></div>
     <p class="tiny muted">The book treats the top 6–7 inches of an acre as 2,000,000 lb, so 1 ppm = 2 lb/acre. The yearly lb/acre limits come from your own spreadsheet, not the book; the book cites about 7 lb/acre of zinc a year as one regulatory limit, and 1–2 ppm of boron a year.</p></div>
+  <div class="card noprint"><h2>Your data</h2><p class="sub" style="margin:0 0 8px">Soil tests, bed sizes, your products and saved mixes are kept only in this browser on this device. Export a backup first if you want to keep a copy.</p>
+    <div class="row">${WIPE?`<span style="color:#000"><b>Erase everything you entered? This can't be undone.</b></span><button class="btn danger" onclick="wipeAll()">Yes, erase all my data</button><button class="btn alt" onclick="wipeStep(false)">Cancel</button>`:`<button class="btn alt" onclick="exportAll()">Export backup</button><button class="btn danger" onclick="wipeStep(true)">Clear all my data</button>`}</div></div>
   <div class="card"><h2>Product data corrected against the book</h2><ul class="tiny" style="margin:4px 0 0 18px;padding:0">
    <li>Potassium sulfate: 0-0-51 means 51% K₂O, which is 42.3% potassium (was 50%). A duplicate entry listing 83% K was removed.</li>
    <li>Dr. Earth, Garden-tone, Citrus-tone, Tomato-tone and Jobes: P and K were the label's oxide numbers; now converted (P₂O₅ × 0.44, K₂O × 0.83).</li>
