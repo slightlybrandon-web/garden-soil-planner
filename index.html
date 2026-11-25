@@ -23,6 +23,7 @@ select,input[type=text],input[type=number],input[type=date]{font:inherit;padding
 input[type=number]{width:90px;text-align:right}
 button.btn{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--green);background:var(--green);color:#fff;cursor:pointer}
 button.btn.alt{background:#fff;color:var(--green)} button.btn.danger{background:#fff;color:#0a0f1a;border-color:#0a0f1a}
+label.btn{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--green);background:#fff;color:var(--green);display:inline-block;cursor:pointer}
 button.btn:hover{filter:brightness(.95)}
 table{border-collapse:collapse;width:100%} th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
 th{font-weight:600;color:var(--mute);font-size:12.5px;text-transform:uppercase;letter-spacing:.4px}
@@ -253,11 +254,12 @@ const basisKey = () => S.ui.basis==='tec' ? 'tecOz' : 'limOz';
 
 function setTab(t){ S.ui.tab=t; save(); render(); }
 function render(){
-  const tabs=[['home','Home'],['needs','Needs'],['mix','Mix'],['plan','Plan'],['report','📄 Report'],['tests','Soil tests'],['settings','Settings']];
+  if(S.ui.tab==='report') S.ui.tab='tests';
+  const tabs=[['home','Home'],['tests','Soil tests'],['needs','Needs'],['mix','Mix'],['plan','Plan'],['settings','Settings']];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button class="${S.ui.tab===k?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
-  if(!dates().length && ['needs','mix','plan','report'].includes(S.ui.tab)){
+  if(!dates().length && ['needs','mix','plan'].includes(S.ui.tab)){
     $('#main').innerHTML=`<div class="card"><h2>Start with a soil test</h2><p class="sub">Add your lab results (type them in, import an XML file, or photograph the report) and this page will show what each garden needs, build a mix from the products you have, and warn you about yearly limits.</p><button class="btn" onclick="setTab('tests')">Add a soil test →</button></div>`; return; }
-  ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,report:vReport,tests:vTests,settings:vSettings})[S.ui.tab]();
+  ({home:vHome,needs:vNeeds,mix:vMix,plan:vPlan,tests:vTests,settings:vSettings})[S.ui.tab]();
   try{ glossify($('#main')); }catch(e){}
   if(S.ui.scrollShop){ S.ui.scrollShop=false; const el=document.getElementById('shoplist'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
 }
@@ -679,13 +681,22 @@ function vPlan(){
     ${items.length? `${(()=>{const buy=items.filter(c=>!isOn(c.id)); return buy.length?SHOPBLOCK(buy,mix):'<div class="okbox">Nothing to buy: every product in this mix is ticked “Have”.</div>'})()}<h3>Total to buy / spread</h3><table><tr><th>Product</th><th>Oz</th><th>Lbs</th><th>Oz per sq-ft</th></tr>${items.map(c=>`<tr><td>${esc(c.id)}</td><td>${(mix[c.id]*16).toFixed(1)}</td><td>${mix[c.id].toFixed(2)}${c.lbPerGal?` <span class="muted tiny">≈ ${(mix[c.id]/c.lbPerGal).toFixed(2)} gal</span>`:''}</td><td>${(mix[c.id]*16/area).toFixed(4)}</td></tr>`).join('')}</table>
     <h3>Split by garden (same rate per sq-ft)</h3><div class="scroll"><table><tr><th>Product</th>${S.ui.sel.map(g=>`<th>${esc(g)} <span class="muted tiny">${size(g)} sq-ft</span></th>`).join('')}</tr>${items.map(c=>`<tr><td>${esc(c.id)}</td>${S.ui.sel.map(g=>{const l=mix[c.id]*size(g)/area;return `<td>${l.toFixed(2)} lb <span class="muted tiny">(${(l*16).toFixed(1)} oz)</span></td>`}).join('')}</tr>`).join('')}</table></div>
     <h3>Notes from The Ideal Soil</h3><ul class="tiny" style="margin:4px 0 10px 18px;padding:0">${planTips(items).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
-    <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td title="${esc(srcTip(e))}" style="cursor:help">${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>`
+    <h3>What this delivers vs. need</h3><table><tr><th>Mineral</th><th>Need (lb)</th><th>Supplied (lb)</th><th>Oz/sq-ft supplied</th></tr>${EL.filter(e=>need[e]>0.0005||sup[e]>0.0005).map(e=>`<tr><td title="${esc(srcTip(e))}" style="cursor:help">${e}</td><td>${f2(need[e]||0)}</td><td>${f2(sup[e]||0)}</td><td>${f4((sup[e]||0)*16/area)}</td></tr>`).join('')}</table>
+    <div class="row noprint" style="margin-top:10px"><button class="btn" onclick="printRecipe()">Print / PDF</button><button class="btn alt" onclick="setTab('tests')">Back to soil tests</button><button class="btn alt" onclick="setTab('needs')">Back to what's missing</button></div>`
     : `<p class="muted">No products in the mix yet. Let the app pick products for you, or build one by hand on the Mix tab.</p><div class="row noprint"><button class="btn" onclick="doRecommend()">Suggest a mix</button><button class="btn alt" onclick="doSuggest()">Use only what I have</button></div>`}</div>`;
 }
 
 
 /* ---------------- REPORT (lab-report layout, one report per test date) ---------------- */
-function vReport(){
+function missingBar(d){
+  const gs=gardensOf(d), cnt={}; gs.forEach(g=>{ const a=E.analyze(S.tests[d][g],S.settings); for(const el of EL) if(a[el]&&a[el].limOz>0&&!a[el].high) cnt[el]=(cnt[el]||0)+1; });
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  return `<div class="card noprint" style="border-left:5px solid var(--ok)"><h2 style="margin-bottom:4px">What's missing in this soil</h2>
+    ${top.length?`<div>${top.slice(0,8).map(([e,n])=>`<span class="stat" style="padding:6px 12px"><b style="font-size:16px">${e}</b>short in ${n} of ${gs.length}</span>`).join('')}</div>`:'<div class="okbox">Every mineral meets its target.</div>'}
+    <div class="row" style="margin-top:4px"><button class="btn" onclick="setTab('needs')">See exactly how much each bed needs →</button><button class="btn alt" onclick="setTab('mix')">Build a mix</button><button class="btn alt" onclick="setTab('plan')">Shopping list</button></div></div>`;
+}
+
+function reportHtml(){
   const ds=dates(); const d=S.ui.date, gs=gardensOf(d);
   const lab=(S.reportInfo&&S.reportInfo[d]&&S.reportInfo[d].lab)||'';
   const an=Object.fromEntries(gs.map(g=>[g,E.analyze(S.tests[d][g],S.settings)]));
@@ -704,7 +715,7 @@ function vReport(){
   const known=g=>{ const t=T(g); return t.OtherBases!==undefined||t.ExchH!==undefined; };
   const rest=g=>{ const t=T(g); let sum=0; for(const e of ['Calcium','Magnesium','Potassium','Sodium']){ const v=satv(g,e); if(v==='') return ''; sum+=v; } return +(100-sum).toFixed(2); };
   const body=`
-    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample Location</td>${gs.map(g=>`<th class="sh">${esc(nameLabel(g))}</th>`).join('')}</tr>
+    <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample Location</td>${gs.map(g=>`<th class="sh">${esc(nameLabel(g))} <a href="#" class="noprint" style="color:#cfe0f5;font-size:12px;font-weight:400" onclick="editSample('${d}','${esc(g).replace(/'/g,"\\'")}');return false">✎ edit</a></th>`).join('')}</tr>
     <tr><td class="rl" colspan="3" style="background:#e6edf7">Sample ID</td>${gs.map(g=>`<th class="sh sub"></th>`).join('')}</tr>
     ${row('Lab Number','',g=>num(T(g).LabNo))}
     ${row('Sample Depth in inches','',g=>num(T(g).Depth))}
@@ -738,8 +749,8 @@ function vReport(){
     <tr><td class="rl" colspan="2">Silicon ppm</td>${cols(g=>found(g,'Silicon'))}</tr>
     <tr><td class="rl" colspan="2">EC mmhos/cm</td>${cols(g=>found(g,'EC'))}</tr>`;
   const miss=gs.length;
-  $('#main').innerHTML=`
-  <div class="card"><div class="row"><div><h2>Soil test report</h2><p class="sub" style="margin:0">Laid out like the lab's printed report. Pick any saved report below.</p></div>
+  return `
+  <div class="card"><div class="row"><div><h2>Your soil test report</h2><p class="sub" style="margin:0">Pick a test date. The report is laid out like the lab's printed report.</p></div>
     <div class="right row noprint"><button class="btn" onclick="printRecipe('#reportcard','soil-report-${d}.html')">Print / PDF</button></div></div>
     <div style="margin-top:8px" class="noprint">${ds.map(x=>{ const n=gardensOf(x).length, l=(S.reportInfo&&S.reportInfo[x]&&S.reportInfo[x].lab)||''; return `<button class="chip ${x===d?'on':''}" onclick="S.ui.date='${x}';save();render()" style="font:inherit">${fmtDate(x)} <span class="muted tiny">${n} sample${n>1?'s':''}${l?' · '+esc(l):''}</span></button>`; }).join('')}</div></div>
   <div class="card scroll" id="reportcard"><h2 style="margin-bottom:2px">${fmtDate(d)}${lab?' · '+esc(lab):''}</h2><p class="tiny muted" style="margin:0 0 6px">${gs.length} sample${gs.length>1?'s':''}. Yellow cells fall outside the lab's printed range or are below the desired value.</p>
@@ -754,29 +765,46 @@ function vTests(){
   const allG=[...new Set(dates().flatMap(gardensOf))].sort();
   const hist=`<tr><th>Date</th>${allG.map(g=>`<th>${esc(g)}</th>`).join('')}</tr>`+dates().map(dt=>`<tr><td>${fmtDate(dt)}</td>${allG.map(g=>{const v=S.tests[dt][g]?.[histEl];return `<td>${v===undefined?'<span class="zero">·</span>':v}</td>`}).join('')}</tr>`).join('');
   $('#main').innerHTML=`
-  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${dates().length?dates().length+' test dates on file.':'No tests yet.'} Add one below, import an XML file, or scan a lab report.</p></div>
+  <div class="card"><div class="row"><div><h2>Soil tests</h2><p class="sub" style="margin:0">${dates().length?dates().length+' test dates on file.':'No tests yet.'} Pick a date below to view it, or add a new one by scanning, typing or importing.</p></div>
     <div class="right row noprint"><button class="btn alt" onclick="downloadTemplate()" title="A spreadsheet (CSV) with the exact columns the app reads">Download template</button><label class="btn alt" style="cursor:pointer">Import CSV / XML<input type="file" accept=".csv,.xml" hidden onchange="importAny(this.files[0]);this.value=''"></label>
     <button class="btn alt" onclick="exportAll()">Export backup</button><label class="btn alt" style="cursor:pointer">Restore backup<input type="file" accept=".json" hidden onchange="importBackup(this.files[0])"></label></div></div></div>
+  ${dates().length?reportHtml()+missingBar(d):''}
   <div class="card" id="scancard"><h2>📷 Scan a lab report</h2>
     <p class="sub">Take a photo of the report (or pick one from your library). Claude reads the values; you check them before they're saved.</p>
     <div class="row"><label class="btn" style="cursor:pointer">Take / choose photo<input type="file" accept="image/*" hidden onchange="scanPhoto(this.files[0]);this.value=''"></label><span id="scanmsg" class="muted"></span></div>
     <div id="review">${reviewHtml()}</div></div>
-  <div class="card"><h2>Add a new lab report</h2><p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. Same date + garden + bed overwrites.</p>
+  <div class="card" id="savedcard"><h2>Saved samples</h2><p class="sub" style="margin:0 0 8px">Entered something wrong? Press Edit to fix the values, name or date, or Delete to remove a sample.</p>
+    <div class="scroll"><table><tr><th>Date</th><th>Sample</th><th>TEC</th><th>pH</th><th></th></tr>${dates().flatMap(dt=>gardensOf(dt).map(k=>{ const key=dt+'|'+k, pend=PEND===key; return `<tr><td>${fmtDate(dt)}</td><td style="text-align:left">${esc(nameLabel(k))}</td><td>${S.tests[dt][k].TEC??''}</td><td>${S.tests[dt][k].PH??''}</td><td style="text-align:right;white-space:nowrap">${pend?`<b>Delete this sample?</b> <button class="btn danger" onclick="delSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn alt" onclick="editSample('${dt}','${esc(k).replace(/'/g,"\\'")}')">Edit</button> <button class="btn alt" onclick="pend('${dt}|${esc(k).replace(/'/g,"\\'")}')">Delete</button>`}</td></tr>`; })).join('')||'<tr><td colspan="5" class="muted">Nothing saved yet.</td></tr>'}</table></div></div>
+  <div class="card" id="editform"><h2>${EDIT?'Edit a saved sample':'Add a new lab report'}</h2>${EDIT?`<div class="warnbox">Editing <b>${esc(nameLabel(EDIT.k))}</b> from ${fmtDate(EDIT.d)}. Change any value and press Save changes. <a href="#" onclick="cancelEdit();return false">Cancel</a></div>`:''}<p class="sub">Enter one bed at a time (units: ppm). Garden is the larger area, bed is the plot inside it. Same date + garden + bed overwrites.</p>
     <div class="row"><label>Date <input type="date" id="nd" value="${new Date().toISOString().slice(0,10)}"></label><label>Garden <input type="text" id="nn" placeholder="e.g. 1 or Front" style="width:110px" list="gl"></label><label>Bed <input type="text" id="nb" placeholder="e.g. A or 3 (optional)" style="width:130px"></label><datalist id="gl">${[...new Set(allG.map(g=>nameParts(g).g))].map(g=>`<option>${esc(g)}</option>`).join('')}</datalist></div>
     <div class="grid" style="margin-top:10px">${FIELDS.map(f=>`<label>${f}<input type="number" step="any" id="f_${f}" style="width:100%"></label>`).join('')}</div>
-    <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">Save test</button><span id="addmsg" class="muted"></span></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="addTest()">${EDIT?'Save changes':'Save test'}</button><span id="addmsg" class="muted"></span></div></div>
   <div class="card scroll"><div class="row"><h2>History</h2><select onchange="S.ui.histEl=this.value;render()">${FIELDS.slice(0,3).concat(EL,['Aluminium','Silicon']).map(f=>`<option ${f===histEl?'selected':''}>${f}</option>`).join('')}</select><span class="muted tiny">ppm per garden over time</span></div><table>${hist}</table></div>
-  <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select><button class="btn danger" onclick="delDate()">Delete</button></div></div>`;
+  <div class="card noprint"><h2>Remove a test date</h2><div class="row"><select id="deld">${dates().map(x=>`<option value="${x}">${fmtDate(x)} (${gardensOf(x).length} gardens)</option>`).join('')}</select>${PEND==='DATE'?`<b>Delete every sample on this date?</b> <button class="btn danger" onclick="delDate()">Yes, delete</button> <button class="btn alt" onclick="pend('')">Cancel</button>`:`<button class="btn danger" onclick="pend('DATE')">Delete</button>`}</div></div>`;
 }
+
+let EDIT=null, PEND='';
+function pend(v){ PEND=v; render(); }
+function editSample(d,k){ EDIT={d,k}; PEND=''; setTab('tests'); setTimeout(()=>{ const t=S.tests[d][k], np=nameParts(k);
+    const y=d.slice(0,4), mo=d.slice(4,6)==='00'?'01':d.slice(4,6), da=d.slice(6,8)==='00'||!d.slice(6,8)?'01':d.slice(6,8);
+    $('#nd').value=`${y}-${mo}-${da}`; $('#nn').value=np.g; $('#nb').value=np.b;
+    for(const f of FIELDS) $('#f_'+f).value=t[f]!==undefined?t[f]:'';
+    const el=document.getElementById('editform'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); },60); }
+function cancelEdit(){ EDIT=null; render(); }
+function delSample(d,k){ delete S.tests[d][k]; if(!Object.keys(S.tests[d]).length) delete S.tests[d];
+  PEND=''; if(!S.tests[S.ui.date]) S.ui.date=dates()[0]||null; S.ui.sel=S.ui.sel.filter(x=>x!==k); save(); render(); }
 function addTest(){
   const dt=$('#nd').value.replace(/-/g,''), nm=keyOf($('#nn').value,($('#nb')||{}).value), row={};
   if(!dt||!nm){ $('#addmsg').textContent='Need a date and a garden (bed is optional).'; return; }
   for(const f of FIELDS){ const v=parseFloat($('#f_'+f).value); if(!isNaN(v)) row[f]=v; }
   if(!row.TEC){ $('#addmsg').textContent='TEC is required — every target is based on it.'; return; }
-  (S.tests[dt] ||= {})[nm]=row; if(!(nm in S.sizes)) S.sizes[nm]=0; S.ui.date=dt; save(); render();
-  $('#addmsg').textContent=`Saved ${nm} for ${fmtDate(dt)}.`;
+  const was=EDIT; 
+  if(was && (was.d!==dt||was.k!==nm)){ delete S.tests[was.d][was.k]; if(!Object.keys(S.tests[was.d]).length) delete S.tests[was.d];
+    if(was.k!==nm){ if(!S.sizes[nm]&&S.sizes[was.k]) S.sizes[nm]=S.sizes[was.k]; S.ui.sel=S.ui.sel.map(x=>x===was.k?nm:x); if(S.ui.garden===was.k) S.ui.garden=nm; } }
+  (S.tests[dt] ||= {})[nm]=row; if(!(nm in S.sizes)) S.sizes[nm]=0; S.ui.date=dt; EDIT=null; save(); render();
+  $('#addmsg').textContent=was?`Updated ${nm} for ${fmtDate(dt)}.`:`Saved ${nm} for ${fmtDate(dt)}.`;
 }
-function delDate(){ const x=$('#deld').value; if(!x||!confirm('Delete all tests for '+fmtDate(x)+'?')) return; delete S.tests[x]; S.ui.date=dates()[0]; save(); render(); }
+function delDate(){ const x=$('#deld').value; if(!x) return; PEND=''; delete S.tests[x]; S.ui.date=dates()[0]; save(); render(); }
 function importXml(file){ if(!file) return; file.text().then(t=>{
   const doc=new DOMParser().parseFromString(t,'text/xml'); let n=0;
   doc.querySelectorAll('*').forEach(e=>{ if(!e.tagName.startsWith('SoilTestDate_')) return; const k=e.tagName.split('_')[1];
