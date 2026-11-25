@@ -68,7 +68,17 @@ th:first-child,td:first-child{text-align:left} tr.grp td{background:#e6edf7;colo
 details.gd{padding:0}details.gd>summary{cursor:pointer;padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;list-style:none}details.gd>summary::-webkit-details-marker{display:none}details.gd>summary:before{content:'▸';color:var(--green)}details.gd[open]>summary:before{content:'▾'}details.gd>*:not(summary){margin-left:14px;margin-right:14px}details.gd>.scroll{margin-bottom:12px}.sumneeds{margin-left:auto}th.gh{text-align:center;background:var(--green2);border-bottom:2px solid var(--green)}
 table.needs td,table.needs th{text-align:center}table.needs td:first-child,table.needs th:first-child{text-align:left}
 .gl{display:grid;grid-template-columns:110px 1fr 56px;gap:4px 10px;align-items:center;margin:2px 0}.gtrack{position:relative;height:14px;background:#e3ebf6;border-radius:7px}.gfill{position:absolute;left:0;top:0;height:100%;border-radius:7px}.gmark{position:absolute;top:-3px;width:2px;height:20px;background:#0a0f1a}.gdot{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#fff;border:2px solid #0a0f1a}.gband{position:absolute;top:0;height:100%;background:rgba(31,111,209,.28)}.glab{font-size:13px;color:#000}.gval{font-size:12px;color:#000;text-align:right;font-variant-numeric:tabular-nums}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#000;margin:6px 0}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
-table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{border:1px solid #9fb0c8;padding:5px 8px}table.rep td{text-align:right;color:#000}table.rep td.rl{text-align:left;font-weight:500;background:#f5f8fc}table.rep td.ru{text-align:left;font-size:12px;color:#000;background:#f5f8fc}table.rep th.rs{width:34px;padding:0;background:#dfe8f5;text-transform:uppercase;font-size:11px;color:#0a0f1a}table.rep th.rs span,table.rep th.rs{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}table.rep th.sh{background:#0a1628;color:#fff;text-align:center;font-size:14px;text-transform:none}table.rep th.sh.sub{background:#14407a}table.rep td.out{background:#fff4b8;font-weight:700}table.rep b.short{background:#ffd400;padding:1px 6px;border-radius:5px;color:#000}
+table.rep{table-layout:auto;border:1px solid #0a0f1a}table.rep td,table.rep th{border:1px solid #9fb0c8;padding:5px 8px}table.rep td{text-align:right;color:#000}table.rep td.rl{text-align:left;font-weight:500;background:#f5f8fc}table.rep td.ru{text-align:left;font-size:12px;color:#000;background:#f5f8fc}table.rep th.rs{width:34px;padding:0;background:#dfe8f5;text-transform:uppercase;font-size:11px;color:#0a0f1a}table.rep th.sh{background:#0a1628;color:#fff;text-align:center;font-size:14px;text-transform:none}table.rep th.sh.sub{background:#14407a}table.rep td.out{background:#fff4b8;font-weight:700}table.rep b.short{background:#ffd400;padding:1px 6px;border-radius:5px;color:#000}
+table.rep{--w:#fff}
+table.rep tr.sc-info{--t:#e4eaf3;--d:#c9d5e6}table.rep tr.sc-an{--t:#e6f1fd;--d:#bcd7f6}table.rep tr.sc-cat{--t:#d6e6fb;--d:#9fc2ee}table.rep tr.sc-sat{--t:#c4d6ee;--d:#86a9d8}table.rep tr.sc-tr{--t:#f2f6fb;--d:#d3deec}table.rep tr.sc-ot{--t:#f8f8fa;--d:#dcdfe6}
+table.rep tr[class*="sc-"] td{background:var(--t);text-align:center}
+table.rep tr[class*="sc-"] td.rl,table.rep tr[class*="sc-"] td.ru{text-align:left;background:var(--t);white-space:nowrap}
+table.rep tr[class*="sc-"] td.out{background:#ffe680;font-weight:700}
+table.rep tr[class*="sc-"] th.rs{background:var(--d);vertical-align:middle;text-align:center;padding:6px 4px;width:40px}
+table.rep th.rs span{writing-mode:vertical-rl;transform:rotate(180deg);display:inline-block;font-size:13px;font-weight:750;letter-spacing:.7px;white-space:nowrap;margin:auto}
+table.rep th.rs{writing-mode:horizontal-tb;transform:none}
+table.rep .nu{display:flex;justify-content:space-between;align-items:baseline;gap:18px;min-width:210px}table.rep .nu .un{font-size:12.5px;font-weight:400;color:#1d2840}
+table.rep tr.sc-info td.rl{font-weight:600}
 .glt th{text-align:left}.gbar{height:12px;background:#e3ebf6;border-radius:6px;overflow:hidden}.gbar i{display:block;height:100%;background:var(--ok);border-radius:6px}.gtxt{font-size:12px;color:#000}.glo{margin:4px 0 0 20px;padding:0;color:#000}.glo li{margin:3px 0}
 
 .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#0a1628,#14407a)}
@@ -863,39 +873,41 @@ function reportHtml(){
     ${row('Total Exchange Capacity (M.E.)','',g=>num(T(g).TEC))}
     ${row('pH of Soil Sample','',g=>num(T(g).PH))}
     ${row('Organic Matter, Percent','',g=>num(T(g).SOMpct))}
-    <tr class="sect"><th class="rs" rowspan="2">ANIONS</th><td class="rl" colspan="2">SULFUR:<div class="muted tiny">p.p.m.</div></td>${cols(g=>found(g,'Sulphur'))}</tr>
-    <tr><td class="rl" colspan="2">Mehlich III Phosphorous:<div class="muted tiny">ppm</div></td>${cols(g=>found(g,'Phosphorous'))}</tr>
-    <tr class="sect"><th class="rs" rowspan="10">EXCHANGEABLE CATIONS</th><td class="rl" rowspan="3">CALCIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Calcium'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="2"><span>ANIONS</span></th><td class="rl" colspan="2"><div class="nu"><span>SULFUR:</span><span class="un">p.p.m.</span></div></td>${cols(g=>found(g,'Sulphur'))}</tr>
+    <tr><td class="rl" colspan="2"><div class="nu"><span>Mehlich III Phosphorous:</span><span class="un">ppm</span></div></td>${cols(g=>found(g,'Phosphorous'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="10"><span>EXCHANGEABLE CATIONS</span></th><td class="rl" rowspan="3"><div class="nu"><span>CALCIUM:</span><span class="un">ppm</span></div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Calcium'))}</tr>
     <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Calcium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Calcium'))}</tr>
-    <tr><td class="rl" rowspan="3">MAGNESIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Magnesium'))}</tr>
+    <tr><td class="rl" rowspan="3"><div class="nu"><span>MAGNESIUM:</span><span class="un">ppm</span></div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Magnesium'))}</tr>
     <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Magnesium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Magnesium'))}</tr>
-    <tr><td class="rl" rowspan="3">POTASSIUM:<div class="muted tiny">ppm</div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Potassium'))}</tr>
+    <tr><td class="rl" rowspan="3"><div class="nu"><span>POTASSIUM:</span><span class="un">ppm</span></div></td><td class="ru">Desired Value</td>${cols(g=>desired(g,'Potassium'))}</tr>
     <tr><td class="ru">Value Found</td>${cols(g=>found(g,'Potassium'))}</tr><tr><td class="ru">Deficit</td>${cols(g=>deficit(g,'Potassium'))}</tr>
-    <tr><td class="rl" colspan="2">SODIUM:<div class="muted tiny">ppm</div></td>${cols(g=>found(g,'Sodium'))}</tr>
-    <tr class="sect"><th class="rs" rowspan="6">BASE SATURATION %</th><td class="rl" colspan="2">Calcium (60 to 70%)</td>${gs.map(g=>`<td class="${satcls(g,'Calcium',60,70)}">${num(satv(g,'Calcium'))}</td>`).join('')}</tr>
+    <tr><td class="rl" colspan="2"><div class="nu"><span>SODIUM:</span><span class="un">ppm</span></div></td>${cols(g=>found(g,'Sodium'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="6"><span>BASE SATURATION %</span></th><td class="rl" colspan="2">Calcium (60 to 70%)</td>${gs.map(g=>`<td class="${satcls(g,'Calcium',60,70)}">${num(satv(g,'Calcium'))}</td>`).join('')}</tr>
     <tr><td class="rl" colspan="2">Magnesium (10 to 20%)</td>${gs.map(g=>`<td class="${satcls(g,'Magnesium',10,20)}">${num(satv(g,'Magnesium'))}</td>`).join('')}</tr>
     <tr><td class="rl" colspan="2">Potassium (2 to 5%)</td>${gs.map(g=>`<td class="${satcls(g,'Potassium',2,5)}">${num(satv(g,'Potassium'))}</td>`).join('')}</tr>
     <tr><td class="rl" colspan="2">Sodium (.5 to 3%)</td>${gs.map(g=>`<td class="${satcls(g,'Sodium',.5,3)}">${num(satv(g,'Sodium'))}</td>`).join('')}</tr>
     <tr><td class="rl" colspan="2">Other Bases (Variable)</td>${cols(g=>known(g)?num(T(g).OtherBases):'')}</tr>
     <tr><td class="rl" colspan="2">Exchangeable Hydrogen (10 to 15%)</td>${gs.map(g=>`<td class="${T(g).ExchH!==undefined&&(T(g).ExchH<10||T(g).ExchH>15)?'out':''}">${known(g)?num(T(g).ExchH):''}</td>`).join('')}</tr>
-    <tr class="sect"><th class="rs" rowspan="6">TRACE ELEMENTS</th><td class="rl" colspan="2">Boron (p.p.m.)</td>${cols(g=>found(g,'Boron'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="6"><span>TRACE ELEMENTS</span></th><td class="rl" colspan="2">Boron (p.p.m.)</td>${cols(g=>found(g,'Boron'))}</tr>
     <tr><td class="rl" colspan="2">Iron (p.p.m.)</td>${cols(g=>found(g,'Iron'))}</tr>
     <tr><td class="rl" colspan="2">Manganese (p.p.m.)</td>${cols(g=>found(g,'Manganese'))}</tr>
     <tr><td class="rl" colspan="2">Copper (p.p.m.)</td>${cols(g=>found(g,'Copper'))}</tr>
     <tr><td class="rl" colspan="2">Zinc (p.p.m.)</td>${cols(g=>found(g,'Zinc'))}</tr>
     <tr><td class="rl" colspan="2">Aluminum (p.p.m.)</td>${cols(g=>found(g,'Aluminium'))}</tr>
-    <tr class="sect"><th class="rs" rowspan="5">OTHER</th><td class="rl" colspan="2">Cobalt ppm</td>${cols(g=>found(g,'Cobalt'))}</tr>
+    <tr class="sect"><th class="rs" rowspan="5"><span>OTHER</span></th><td class="rl" colspan="2">Cobalt ppm</td>${cols(g=>found(g,'Cobalt'))}</tr>
     <tr><td class="rl" colspan="2">Molybdenum ppm</td>${cols(g=>found(g,'Molybdenum'))}</tr>
     <tr><td class="rl" colspan="2">Selenium ppm</td>${cols(g=>found(g,'Selenium'))}</tr>
     <tr><td class="rl" colspan="2">Silicon ppm</td>${cols(g=>found(g,'Silicon'))}</tr>
     <tr><td class="rl" colspan="2">EC mmhos/cm</td>${cols(g=>found(g,'EC'))}</tr>`;
+  const SECS=[['info',7],['an',2],['cat',10],['sat',6],['tr',6],['ot',5]];
+  const rowsArr=body.split(/(?=<tr)/).filter(x=>x.trim()); let ri=0; const bodyC=SECS.flatMap(([k,n])=>rowsArr.slice(ri,(ri+=n),ri).map(r=>r.replace(/^<tr class="([^"]*)"/,'<tr class="$1 sc-'+k+'"').replace(/^<tr>/,'<tr class="sc-'+k+'">'))).join('');
   const miss=gs.length;
   return `
   <div class="card"><div class="row"><div><h2>Your soil test report</h2><p class="sub" style="margin:0">Pick a test date. The report is laid out like the lab's printed report.</p></div>
     <div class="right row noprint"><button class="btn" onclick="printRecipe('#reportcard','soil-report-${d}.html')">Print / PDF</button></div></div>
     <div style="margin-top:8px" class="noprint">${ds.map(x=>{ const n=gardensOf(x).length, l=(S.reportInfo&&S.reportInfo[x]&&S.reportInfo[x].lab)||''; return `<button class="chip ${x===d?'on':''}" onclick="S.ui.date='${x}';save();render()" style="font:inherit">${fmtDate(x)} <span class="muted tiny">${n} sample${n>1?'s':''}${l?' · '+esc(l):''}</span></button>`; }).join('')}</div></div>
   <div class="card scroll" id="reportcard"><h2 style="margin-bottom:2px">${fmtDate(d)}${lab?' · '+esc(lab):''}</h2><p class="tiny muted" style="margin:0 0 6px">${gs.length} sample${gs.length>1?'s':''}. Yellow cells fall outside the lab's printed range or are below the desired value.</p>
-    <table class="rep"><colgroup><col style="width:34px"><col style="width:150px"><col style="width:120px"></colgroup>${body}</table>
+    <table class="rep"><colgroup><col style="width:34px"><col style="width:150px"><col style="width:120px"></colgroup>${bodyC}</table>
     ${miss?`<p class="tiny muted">Desired values, deficits and base-saturation percentages are calculated here from TEC and the ppm values using the target settings (Desired uses the minimum floors too). so they can differ from the lab's printed numbers by a small rounding amount. Other Bases and Exchangeable Hydrogen appear only when they were entered or scanned.</p>`:''}</div>`;
 }
 
